@@ -1,0 +1,127 @@
+.rules-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.back-btn:hover {
+  background: #ff5252;
+  transform: translateX(-3px);
+}
+
+.rules-screen {
+  max-width: 600px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffd700;
+  border-radius: 15px;
+  padding: 40px;
+  text-align: center;
+}
+
+.rules-screen h1 {
+  font-size: 2.5rem;
+  color: #ffd700;
+  margin-bottom: 30px;
+}
+
+.rules-content h2 {
+  font-size: 1.3rem;
+  color: #ffd700;
+  margin-bottom: 25px;
+}
+
+.rules-list {
+  text-align: left;
+  margin-bottom: 35px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 25px;
+}
+
+.rule-item {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.rule-item:last-child {
+  margin-bottom: 0;
+}
+
+.rule-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 35px;
+  height: 35px;
+  background: #ffd700;
+  color: #1a1a2e;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.rule-text {
+  color: #ddd;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding-top: 5px;
+}
+
+.agree-btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1rem;
+  background: #ffd700;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.agree-btn:hover {
+  background: #ffed4e;
+  transform: scale(1.02);
+}
+
+@media (max-width: 600px) {
+  .rules-screen {
+    padding: 25px;
+  }
+
+  .rules-screen h1 {
+    font-size: 1.8rem;
+  }
+
+  .rule-item {
+    gap: 10px;
+  }
+
+  .rule-text {
+    font-size: 0.95rem;
+  }
+}
