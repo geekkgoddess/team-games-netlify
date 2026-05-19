@@ -7,6 +7,7 @@ import GameCodeEntry from './components/GameCodeEntry'
 import RulesScreen from './components/RulesScreen'
 import PlayerSetup from './components/PlayerSetup'
 import GameRating from './components/GameRating'
+import HostLobby from './components/HostLobby'
 import { generateGameCode } from './utils/gameUtils'
 import './App.css'
 
@@ -25,7 +26,6 @@ export default function App() {
     const url = new URL(window.location)
     const gameIdParam = url.searchParams.get('gameId')
     const isHostParam = url.searchParams.get('host') === 'true'
-    
     if (gameIdParam) {
       const game = url.searchParams.get('game')
       setGameId(gameIdParam)
@@ -70,7 +70,7 @@ export default function App() {
     'tah': [
       'A prompt is displayed to all players',
       'Players submit absurd answers to the prompt',
-      'The host (judge) selects the funniest answer',
+      'The host judges and awards points to the funniest answer',
       'The winning team gets 10 points',
       'New prompts keep the game flowing'
     ]
@@ -82,18 +82,21 @@ export default function App() {
     setScreen('game')
   }
 
-  const startGame = (gameName) => {
+  const selectGame = (gameName) => {
     const newGameId = generateGameCode()
     setGameId(newGameId)
     setGameCode(newGameId)
     setCurrentGame(gameName)
-    setScreen('game')
-    
+    setScreen('host-lobby')
+  }
+
+  const startGame = () => {
     const url = new URL(window.location)
-    url.searchParams.set('gameId', newGameId)
-    url.searchParams.set('game', gameName)
+    url.searchParams.set('gameId', gameId)
+    url.searchParams.set('game', currentGame)
     url.searchParams.set('host', 'true')
     window.history.replaceState({}, '', url)
+    setScreen('game')
   }
 
   const handleGameEnd = (finalLeaderboard) => {
@@ -119,70 +122,23 @@ export default function App() {
     window.history.replaceState({}, '', window.location.pathname)
   }
 
-  if (screen === 'role') {
-    return <RoleSelector onSelectRole={handleSelectRole} />
-  }
-
-  if (screen === 'host-menu') {
-    return <GameMenu onStartGame={startGame} onBack={goHome} />
-  }
-
-  if (screen === 'code-entry') {
-    return <GameCodeEntry onCodeSubmit={handleCodeSubmit} onBack={() => setScreen('role')} />
-  }
-
+  if (screen === 'role') return <RoleSelector onSelectRole={handleSelectRole} />
+  if (screen === 'host-menu') return <GameMenu onStartGame={selectGame} onBack={goHome} />
+  if (screen === 'host-lobby') return <HostLobby gameCode={gameCode} gameName={currentGame} onStartGame={startGame} onBack={() => setScreen('host-menu')} />
+  if (screen === 'code-entry') return <GameCodeEntry onCodeSubmit={handleCodeSubmit} onBack={() => setScreen('role')} />
   if (screen === 'rules') {
-    const rules = gameRules[currentGame] || []
-    return (
-      <RulesScreen 
-        gameTitle={getGameTitle(currentGame)}
-        rules={rules}
-        onAgree={() => setScreen('player-setup')}
-        onBack={() => setScreen('code-entry')}
-      />
-    )
+    return <RulesScreen gameTitle={getGameTitle(currentGame)} rules={gameRules[currentGame] || []} onAgree={() => setScreen('player-setup')} onBack={() => setScreen('code-entry')} />
   }
-
-  if (screen === 'player-setup') {
-    return (
-      <PlayerSetup 
-        onReady={handlePlayerSetupComplete}
-        onBack={() => setScreen('rules')}
-      />
-    )
-  }
-
-  if (screen === 'rating') {
-    return (
-      <GameRating 
-        gameTitle={getGameTitle(currentGame)}
-        leaderboard={leaderboard}
-        onSubmit={handleRatingSubmit}
-        onSkip={goHome}
-      />
-    )
-  }
+  if (screen === 'player-setup') return <PlayerSetup onReady={handlePlayerSetupComplete} onBack={() => setScreen('rules')} />
+  if (screen === 'rating') return <GameRating gameTitle={getGameTitle(currentGame)} leaderboard={leaderboard} onSubmit={handleRatingSubmit} onSkip={goHome} />
 
   if (screen === 'game' && currentGame && gameId) {
-    const gameProps = { 
-      gameId, 
-      isHost, 
-      playerName,
-      playerAvatar,
-      gameCode,
-      onExit: goHome,
-      onGameEnd: handleGameEnd
-    }
-    
-    switch(currentGame) {
-      case 'guess-coworker':
-        return <GuessTheCoworker {...gameProps} />
-      case '2-truths':
-        return <TwoTruthsAndALie {...gameProps} />
-      case 'tah':
-        return <TeamsAgainstHumanity {...gameProps} />
-      default:
-        return <GameMenu onStartGame={startGame} onBack={goHome} />
+    const gameProps = { gameId, isHost, playerName, playerAvatar, gameCode, onExit: goHome, onGameEnd: handleGameEnd }
+    switch (currentGame) {
+      case 'guess-coworker': return <GuessTheCoworker {...gameProps} />
+      case '2-truths': return <TwoTruthsAndALie {...gameProps} />
+      case 'tah': return <TeamsAgainstHumanity {...gameProps} />
+      default: return <GameMenu onStartGame={selectGame} onBack={goHome} />
     }
   }
 
@@ -190,57 +146,23 @@ export default function App() {
 }
 
 function getGameTitle(gameName) {
-  const titles = {
-    'guess-coworker': '👥 Guess the Coworker',
-    '2-truths': '🤥 2 Truths & A Lie',
-    'tah': '🎭 Teams Against Humanity'
-  }
+  const titles = { 'guess-coworker': '👥 Guess the Coworker', '2-truths': '🤥 2 Truths & A Lie', 'tah': '🎭 Teams Against Humanity' }
   return titles[gameName] || 'Team Games'
 }
 
 function GameMenu({ onStartGame, onBack }) {
   return (
     <div className="menu-container">
-      <button className="back-btn" onClick={onBack} style={{
-        position: 'absolute',
-        top: '20px',
-        left: '20px',
-        background: '#ff6b6b',
-        color: 'white',
-        border: 'none',
-        padding: '10px 20px',
-        borderRadius: '8px',
-        cursor: 'pointer'
-      }}>← Back</button>
-
+      <button onClick={onBack} style={{ position:'absolute', top:'20px', left:'20px', background:'#444', color:'white', border:'none', padding:'10px 20px', borderRadius:'8px', cursor:'pointer' }}>← Back</button>
       <div className="menu-header">
         <h1>🎮 TEAM GAMES</h1>
-        <p>Real-time interactive games for your team</p>
+        <p>Pick a game to play</p>
       </div>
-
       <div className="games-grid">
-        <GameCard
-          title="Guess the Coworker"
-          description="Who is it? Clue-based guessing game with voting and live scoring"
-          emoji="🧑"
-          onClick={() => onStartGame('guess-coworker')}
-        />
-        
-        <GameCard
-          title="2 Truths & A Lie"
-          description="Challenge Edition - Guess the lie and complete hilarious challenges"
-          emoji="🤥"
-          onClick={() => onStartGame('2-truths')}
-        />
-        
-        <GameCard
-          title="Teams Against Humanity"
-          description="Match game prompts with absurd answers. Facilitator judges and awards points"
-          emoji="🎭"
-          onClick={() => onStartGame('tah')}
-        />
+        <GameCard title="Guess the Coworker" description="Who is it? Clue-based guessing game with voting and live scoring" emoji="🧑" onClick={() => onStartGame('guess-coworker')} />
+        <GameCard title="2 Truths & A Lie" description="Challenge Edition - Guess the lie and complete hilarious challenges" emoji="🤥" onClick={() => onStartGame('2-truths')} />
+        <GameCard title="Teams Against Humanity" description="Match game prompts with absurd answers. Facilitator judges and awards points" emoji="🎭" onClick={() => onStartGame('tah')} />
       </div>
-
       <div className="menu-footer">
         <p>✨ All games support real-time multiplayer</p>
         <p>Host shares their screen, players participate on their devices</p>
