@@ -5,6 +5,31 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
   const [copied, setCopied] = useState(false)
   const [players, setPlayers] = useState([])
 
+  // Save game info to server so players can look it up when they enter the code
+  useEffect(() => {
+    const registerGame = async () => {
+      try {
+        await fetch('/api/sync-game-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: gameCode,
+            state: {
+              gameName,
+              phase: 'waiting',
+              players: [],
+              scores: {}
+            },
+            timestamp: Date.now()
+          })
+        })
+      } catch (e) {
+        console.log('Could not register game:', e)
+      }
+    }
+    registerGame()
+  }, [gameCode, gameName])
+
   // Poll for players joining
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -13,7 +38,7 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
         const data = await response.json()
         if (data.players) setPlayers(data.players)
       } catch (e) {
-        // Not yet — no players joined
+        // No players yet
       }
     }, 1000)
     return () => clearInterval(interval)
@@ -50,7 +75,7 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
         <div className="join-instructions">
           <p>Players go to:</p>
           <div className="url-display">{window.location.origin}</div>
-          <p>→ Select <strong>Player</strong> → Enter code <strong>{gameCode}</strong></p>
+          <p>→ Click <strong>Player</strong> → Enter code <strong>{gameCode}</strong></p>
         </div>
 
         <div className="players-waiting">
@@ -74,7 +99,7 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
           onClick={onStartGame}
           disabled={players.length < 1}
         >
-          {players.length < 1 ? 'Waiting for players...' : `Start Game (${players.length} players)`}
+          {players.length < 1 ? 'Waiting for players...' : `Start Game (${players.length} players) →`}
         </button>
 
         <p className="skip-hint">

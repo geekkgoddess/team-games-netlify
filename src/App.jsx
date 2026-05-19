@@ -46,9 +46,21 @@ export default function App() {
     }
   }
 
-  const handleCodeSubmit = (code) => {
+  // Player enters code → fetch game info from server → show correct rules
+  const handleCodeSubmit = async (code) => {
     setGameCode(code)
     setGameId(code)
+
+    try {
+      const response = await fetch(`/api/sync-game-state?gameId=${code}`)
+      const data = await response.json()
+      if (data.gameName) {
+        setCurrentGame(data.gameName)
+      }
+    } catch (e) {
+      console.log('Could not fetch game info')
+    }
+
     setScreen('rules')
   }
 
@@ -76,12 +88,19 @@ export default function App() {
     ]
   }
 
+  const gameTitles = {
+    'guess-coworker': '👥 Guess the Coworker',
+    '2-truths': '🤥 2 Truths & A Lie',
+    'tah': '🎭 Teams Against Humanity'
+  }
+
   const handlePlayerSetupComplete = (name, avatar) => {
     setPlayerName(name)
     setPlayerAvatar(avatar)
     setScreen('game')
   }
 
+  // Host picks a game → generate code → show lobby with code
   const selectGame = (gameName) => {
     const newGameId = generateGameCode()
     setGameId(newGameId)
@@ -90,6 +109,7 @@ export default function App() {
     setScreen('host-lobby')
   }
 
+  // Host clicks Start in lobby → go to game
   const startGame = () => {
     const url = new URL(window.location)
     url.searchParams.set('gameId', gameId)
@@ -122,18 +142,74 @@ export default function App() {
     window.history.replaceState({}, '', window.location.pathname)
   }
 
-  if (screen === 'role') return <RoleSelector onSelectRole={handleSelectRole} />
-  if (screen === 'host-menu') return <GameMenu onStartGame={selectGame} onBack={goHome} />
-  if (screen === 'host-lobby') return <HostLobby gameCode={gameCode} gameName={currentGame} onStartGame={startGame} onBack={() => setScreen('host-menu')} />
-  if (screen === 'code-entry') return <GameCodeEntry onCodeSubmit={handleCodeSubmit} onBack={() => setScreen('role')} />
-  if (screen === 'rules') {
-    return <RulesScreen gameTitle={getGameTitle(currentGame)} rules={gameRules[currentGame] || []} onAgree={() => setScreen('player-setup')} onBack={() => setScreen('code-entry')} />
+  // --- SCREENS ---
+
+  if (screen === 'role') {
+    return <RoleSelector onSelectRole={handleSelectRole} />
   }
-  if (screen === 'player-setup') return <PlayerSetup onReady={handlePlayerSetupComplete} onBack={() => setScreen('rules')} />
-  if (screen === 'rating') return <GameRating gameTitle={getGameTitle(currentGame)} leaderboard={leaderboard} onSubmit={handleRatingSubmit} onSkip={goHome} />
+
+  if (screen === 'host-menu') {
+    return <GameMenu onStartGame={selectGame} onBack={goHome} />
+  }
+
+  if (screen === 'host-lobby') {
+    return (
+      <HostLobby
+        gameCode={gameCode}
+        gameName={currentGame}
+        onStartGame={startGame}
+        onBack={() => setScreen('host-menu')}
+      />
+    )
+  }
+
+  if (screen === 'code-entry') {
+    return <GameCodeEntry onCodeSubmit={handleCodeSubmit} onBack={() => setScreen('role')} />
+  }
+
+  if (screen === 'rules') {
+    const rules = gameRules[currentGame] || []
+    const title = gameTitles[currentGame] || 'Team Games'
+    return (
+      <RulesScreen
+        gameTitle={title}
+        rules={rules}
+        onAgree={() => setScreen('player-setup')}
+        onBack={() => setScreen('code-entry')}
+      />
+    )
+  }
+
+  if (screen === 'player-setup') {
+    return (
+      <PlayerSetup
+        onReady={handlePlayerSetupComplete}
+        onBack={() => setScreen('rules')}
+      />
+    )
+  }
+
+  if (screen === 'rating') {
+    return (
+      <GameRating
+        gameTitle={gameTitles[currentGame] || 'Team Games'}
+        leaderboard={leaderboard}
+        onSubmit={handleRatingSubmit}
+        onSkip={goHome}
+      />
+    )
+  }
 
   if (screen === 'game' && currentGame && gameId) {
-    const gameProps = { gameId, isHost, playerName, playerAvatar, gameCode, onExit: goHome, onGameEnd: handleGameEnd }
+    const gameProps = {
+      gameId,
+      isHost,
+      playerName,
+      playerAvatar,
+      gameCode,
+      onExit: goHome,
+      onGameEnd: handleGameEnd
+    }
     switch (currentGame) {
       case 'guess-coworker': return <GuessTheCoworker {...gameProps} />
       case '2-truths': return <TwoTruthsAndALie {...gameProps} />
@@ -145,27 +221,44 @@ export default function App() {
   return null
 }
 
-function getGameTitle(gameName) {
-  const titles = { 'guess-coworker': '👥 Guess the Coworker', '2-truths': '🤥 2 Truths & A Lie', 'tah': '🎭 Teams Against Humanity' }
-  return titles[gameName] || 'Team Games'
-}
-
 function GameMenu({ onStartGame, onBack }) {
   return (
     <div className="menu-container">
-      <button onClick={onBack} style={{ position:'absolute', top:'20px', left:'20px', background:'#444', color:'white', border:'none', padding:'10px 20px', borderRadius:'8px', cursor:'pointer' }}>← Back</button>
+      <button onClick={onBack} style={{
+        position: 'absolute', top: '20px', left: '20px',
+        background: '#444', color: 'white', border: 'none',
+        padding: '10px 20px', borderRadius: '8px', cursor: 'pointer'
+      }}>← Back</button>
+
       <div className="menu-header">
         <h1>🎮 TEAM GAMES</h1>
         <p>Pick a game to play</p>
       </div>
+
       <div className="games-grid">
-        <GameCard title="Guess the Coworker" description="Who is it? Clue-based guessing game with voting and live scoring" emoji="🧑" onClick={() => onStartGame('guess-coworker')} />
-        <GameCard title="2 Truths & A Lie" description="Challenge Edition - Guess the lie and complete hilarious challenges" emoji="🤥" onClick={() => onStartGame('2-truths')} />
-        <GameCard title="Teams Against Humanity" description="Match game prompts with absurd answers. Facilitator judges and awards points" emoji="🎭" onClick={() => onStartGame('tah')} />
+        <GameCard
+          title="Guess the Coworker"
+          description="Who is it? Clue-based guessing game with voting and live scoring"
+          emoji="🧑"
+          onClick={() => onStartGame('guess-coworker')}
+        />
+        <GameCard
+          title="2 Truths & A Lie"
+          description="Challenge Edition - Guess the lie and complete hilarious challenges"
+          emoji="🤥"
+          onClick={() => onStartGame('2-truths')}
+        />
+        <GameCard
+          title="Teams Against Humanity"
+          description="Match game prompts with absurd answers. Facilitator judges and awards points"
+          emoji="🎭"
+          onClick={() => onStartGame('tah')}
+        />
       </div>
+
       <div className="menu-footer">
         <p>✨ All games support real-time multiplayer</p>
-        <p>Host shares their screen, players participate on their devices</p>
+        <p>Host shares their screen, players join on their own devices</p>
       </div>
     </div>
   )
