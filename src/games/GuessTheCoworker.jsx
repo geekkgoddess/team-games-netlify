@@ -5,21 +5,21 @@ import './games.css'
 
 const CLUES = [
   "always early to meetings",
-  "loves monster the most",
-  "most PC issues",
+  "coffee junkie",
+  "quiet but deadly",
   "forever on mute",
   "camera always off",
-  "best GIFs",
-  "most quiet",
-  "best advise",
-  "sql guru",
+  "types in all caps",
+  "loves the off mute button",
+  "says 'thank you' 100 times",
+  "uses too many emojis",
   "forgets to unmute",
-  "most active in teams chat",
+  "always has a cat on camera",
   "talks over everyone",
-  "travels the most",
+  "loves the whiteboard",
   "forgot to turn off share screen",
   "background always changes",
-  "always snacking",
+  "favorite snack is instant ramen",
   "claims 'you're on mute'",
   "always asks 'can everyone hear me'",
   "professional background",
@@ -52,17 +52,17 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     const registerPlayer = async () => {
       const myPlayer = { name: playerName, avatar: playerAvatar || '🎭' }
       try {
-        const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
-        const data = await response.json()
-        const existing = data.players || []
-        const alreadyJoined = existing.find(p => p.name === playerName)
-        if (!alreadyJoined) {
-          await syncGameState(gameId, {
-            ...data,
-            players: [...existing, myPlayer],
-            scores: { ...data.scores, [playerName]: 0 }
+        // FIX: Use addPlayer action so server MERGES instead of overwrites
+        // This prevents players disappearing when multiple people join at once
+        await fetch('/api/sync-game-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId,
+            action: 'addPlayer',
+            state: { newPlayer: myPlayer }
           })
-        }
+        })
       } catch (e) {
         console.log('Registering player...')
       }

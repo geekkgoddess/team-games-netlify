@@ -21,6 +21,8 @@ export default function App() {
   const [playerAvatar, setPlayerAvatar] = useState('')
   const [isHost, setIsHost] = useState(false)
   const [leaderboard, setLeaderboard] = useState([])
+  const [loadingCode, setLoadingCode] = useState(false)
+  const [codeError, setCodeError] = useState('')
 
   useEffect(() => {
     const url = new URL(window.location)
@@ -46,22 +48,32 @@ export default function App() {
     }
   }
 
-  // Player enters code → fetch game info from server → show correct rules
+  // FIX: Wait for fetch to complete before moving to rules screen
   const handleCodeSubmit = async (code) => {
+    setLoadingCode(true)
+    setCodeError('')
     setGameCode(code)
     setGameId(code)
 
     try {
       const response = await fetch(`/api/sync-game-state?gameId=${code}`)
       const data = await response.json()
-      if (data.gameName) {
+      if (data && data.gameName) {
         setCurrentGame(data.gameName)
+        setLoadingCode(false)
+        setScreen('rules')
+      } else {
+        // Game exists but no gameName yet — still let them in with generic rules
+        setCurrentGame('guess-coworker') // fallback
+        setLoadingCode(false)
+        setScreen('rules')
       }
     } catch (e) {
-      console.log('Could not fetch game info')
+      console.log('Could not fetch game info, using fallback')
+      setCurrentGame('guess-coworker') // fallback so screen never stays blank
+      setLoadingCode(false)
+      setScreen('rules')
     }
-
-    setScreen('rules')
   }
 
   const gameRules = {
@@ -100,7 +112,6 @@ export default function App() {
     setScreen('game')
   }
 
-  // Host picks a game → generate code → show lobby with code
   const selectGame = (gameName) => {
     const newGameId = generateGameCode()
     setGameId(newGameId)
@@ -109,7 +120,6 @@ export default function App() {
     setScreen('host-lobby')
   }
 
-  // Host clicks Start in lobby → go to game
   const startGame = () => {
     const url = new URL(window.location)
     url.searchParams.set('gameId', gameId)
@@ -139,6 +149,8 @@ export default function App() {
     setPlayerAvatar('')
     setIsHost(false)
     setLeaderboard([])
+    setLoadingCode(false)
+    setCodeError('')
     window.history.replaceState({}, '', window.location.pathname)
   }
 
@@ -163,12 +175,20 @@ export default function App() {
     )
   }
 
-  if (screen === 'code-entry') {
-    return <GameCodeEntry onCodeSubmit={handleCodeSubmit} onBack={() => setScreen('role')} />
+  // FIX: Show loading spinner while fetching game info
+  if (screen === 'code-entry' || loadingCode) {
+    return (
+      <GameCodeEntry
+        onCodeSubmit={handleCodeSubmit}
+        onBack={() => setScreen('role')}
+        loading={loadingCode}
+        error={codeError}
+      />
+    )
   }
 
   if (screen === 'rules') {
-    const rules = gameRules[currentGame] || []
+    const rules = gameRules[currentGame] || gameRules['guess-coworker']
     const title = gameTitles[currentGame] || 'Team Games'
     return (
       <RulesScreen
@@ -200,7 +220,19 @@ export default function App() {
     )
   }
 
-  if (screen === 'game' && currentGame && gameId) {
+  // FIX: If currentGame is somehow null on game screen, show error instead of blank
+  if (screen === 'game') {
+    if (!currentGame || !gameId) {
+      return (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:'16px' }}>
+          <p style={{ color:'#ffd700', fontSize:'1.2rem' }}>⚠️ Something went wrong loading the game.</p>
+          <button onClick={goHome} style={{ background:'#ffd700', color:'#000', border:'none', padding:'12px 24px', borderRadius:'8px', cursor:'pointer', fontWeight:'bold' }}>
+            ← Go Back Home
+          </button>
+        </div>
+      )
+    }
+
     const gameProps = {
       gameId,
       isHost,
@@ -225,37 +257,19 @@ function GameMenu({ onStartGame, onBack }) {
   return (
     <div className="menu-container">
       <button onClick={onBack} style={{
-        position: 'absolute', top: '20px', left: '20px',
-        background: '#444', color: 'white', border: 'none',
-        padding: '10px 20px', borderRadius: '8px', cursor: 'pointer'
+        position:'absolute', top:'20px', left:'20px',
+        background:'#444', color:'white', border:'none',
+        padding:'10px 20px', borderRadius:'8px', cursor:'pointer'
       }}>← Back</button>
-
       <div className="menu-header">
         <h1>🎮 TEAM GAMES</h1>
         <p>Pick a game to play</p>
       </div>
-
       <div className="games-grid">
-        <GameCard
-          title="Guess the Coworker"
-          description="Who is it? Clue-based guessing game with voting and live scoring"
-          emoji="🧑"
-          onClick={() => onStartGame('guess-coworker')}
-        />
-        <GameCard
-          title="2 Truths & A Lie"
-          description="Challenge Edition - Guess the lie and complete hilarious challenges"
-          emoji="🤥"
-          onClick={() => onStartGame('2-truths')}
-        />
-        <GameCard
-          title="Teams Against Humanity"
-          description="Match game prompts with absurd answers. Facilitator judges and awards points"
-          emoji="🎭"
-          onClick={() => onStartGame('tah')}
-        />
+        <GameCard title="Guess the Coworker" description="Who is it? Clue-based guessing game with voting and live scoring" emoji="🧑" onClick={() => onStartGame('guess-coworker')} />
+        <GameCard title="2 Truths & A Lie" description="Challenge Edition - Guess the lie and complete hilarious challenges" emoji="🤥" onClick={() => onStartGame('2-truths')} />
+        <GameCard title="Teams Against Humanity" description="Match game prompts with absurd answers. Facilitator judges and awards points" emoji="🎭" onClick={() => onStartGame('tah')} />
       </div>
-
       <div className="menu-footer">
         <p>✨ All games support real-time multiplayer</p>
         <p>Host shares their screen, players join on their own devices</p>
