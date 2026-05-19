@@ -44,6 +44,9 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [roundCount, setRoundCount] = useState(0)
   const [maxRounds] = useState(5)
   const [leaderboardPauseTimer, setLeaderboardPauseTimer] = useState(0)
+  const [pendingVote, setPendingVote] = useState(null)
+  const [voteSending, setVoteSending] = useState(false)
+  const [voteConfirmed, setVoteConfirmed] = useState(false)
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -163,19 +166,40 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }
 
   const submitVote = async (votedFor) => {
-    if (votes[playerName]) return // already voted
+    // Don't re-send if already sending the same vote
+    if (voteSending && pendingVote === votedFor) return
+
+    // Show selection INSTANTLY — don't wait for server
+    setPendingVote(votedFor)
+    setVoteSending(true)
+    setVoteConfirmed(false)
+
     const newVotes = { ...votes, [playerName]: votedFor }
     setVotes(newVotes)
 
-    await syncGameState(gameId, {
-      phase: 'voting',
-      players,
-      scores,
-      clues,
-      answer,
-      votes: newVotes,
-      timer
-    })
+    // Retry up to 3 times if network is slow
+    let success = false
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await syncGameState(gameId, {
+          phase: 'voting',
+          players,
+          scores,
+          clues,
+          answer,
+          votes: newVotes,
+          timer
+        })
+        success = true
+        break
+      } catch (e) {
+        console.log('Vote attempt ' + attempt + ' failed, retrying...')
+        await new Promise(r => setTimeout(r, 300))
+      }
+    }
+
+    setVoteSending(false)
+    setVoteConfirmed(success)
   }
 
   const revealAnswer = async () => {
@@ -312,17 +336,26 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
                   <button
                     key={p.name}
                     onClick={() => submitVote(p.name)}
-                    disabled={!!votes[playerName]}
-                    className={`avatar-btn ${votes[playerName] === p.name ? 'selected' : ''}`}
+                    className={`avatar-btn ${pendingVote === p.name ? 'selected' : ''} ${voteSending && pendingVote !== p.name ? 'dimmed' : ''}`}
                   >
                     <div className="avatar">{p.avatar}</div>
                     <div className="name">{p.name}</div>
+                    {pendingVote === p.name && voteSending && (
+                      <div className="vote-status sending">Sending...</div>
+                    )}
+                    {pendingVote === p.name && voteConfirmed && (
+                      <div className="vote-status confirmed">✓ Voted</div>
+                    )}
                   </button>
                 ))}
               </div>
 
-              {votes[playerName] && (
-                <p className="voted">✓ You voted for: {votes[playerName]}</p>
+              {pendingVote && (
+                <p className="voted">
+                  {voteSending ? '⏳ Sending vote...' : voteConfirmed ? '✅ Vote confirmed!' : '⚠️ Retrying...'}
+                  &nbsp;— {pendingVote}
+                  {voteConfirmed && <span style={{color:'#aaa', fontSize:'13px'}}> (tap another to change)</span>}
+                </p>
               )}
             </div>
           )}

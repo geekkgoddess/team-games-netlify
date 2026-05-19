@@ -304,6 +304,40 @@
 .voted {
   color: #27AE60;
   font-weight: bold;
+  font-size: 14px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Dims non-selected buttons while sending */
+.avatar-btn.dimmed {
+  opacity: 0.4;
+  transform: none !important;
+}
+
+/* Small status label inside the button */
+.vote-status {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.vote-status.sending {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  animation: pulse 0.8s ease infinite alternate;
+}
+
+.vote-status.confirmed {
+  background: rgba(46, 204, 113, 0.3);
+  color: #2ecc71;
+}
+
+@keyframes pulse {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
 }
 
 /* Reveal Container */
