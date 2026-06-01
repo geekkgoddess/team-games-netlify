@@ -26,20 +26,46 @@ const PROMPTS = [
   "I got caught ___ on camera once.",
 ]
 
-export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
-  const [phase, setPhase] = useState('setup') // setup, playing, judging, results
+export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playerAvatar, gameCode, onExit, onGameEnd }) {
+  const [phase, setPhase] = useState('waiting')
   const [players, setPlayers] = useState([])
-  const [playerName, setPlayerName] = useState('')
   const [scores, setScores] = useState({})
   const [currentPrompt, setCurrentPrompt] = useState('')
   const [submissions, setSubmissions] = useState({})
   const [answered, setAnswered] = useState([])
   const [round, setRound] = useState(0)
   const [usedPrompts, setUsedPrompts] = useState([])
+  const [answerInput, setAnswerInput] = useState('')
+  const [submissionsList, setSubmissionsList] = useState([])
+  const [maxRounds] = useState(5)
+
+  // Register player when they join (non-host only)
+  useEffect(() => {
+    if (isHost || !playerName) return
+
+    const registerPlayer = async () => {
+      const myPlayer = { name: playerName, avatar: playerAvatar || '🎭' }
+      try {
+        await fetch('/api/sync-game-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId,
+            action: 'addPlayer',
+            state: { newPlayer: myPlayer }
+          })
+        })
+      } catch (e) {
+        console.log('Registering player...')
+      }
+    }
+
+    registerPlayer()
+  }, [gameId, isHost, playerName, playerAvatar])
 
   // Host polling
   useEffect(() => {
-    if (!isHost || phase === 'setup') return
+    if (!isHost || phase === 'waiting') return
 
     const interval = setInterval(async () => {
       try {
@@ -47,8 +73,12 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
         const data = await response.json()
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
-        if (data.submissions) setSubmissions(data.submissions)
+        if (data.submissions) {
+          setSubmissions(data.submissions)
+          setSubmissionsList(Object.entries(data.submissions).map(([key, answer]) => ({ id: key, answer })))
+        }
         if (data.answered) setAnswered(data.answered)
+        if (data.round) setRound(data.round)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -68,9 +98,13 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
         if (data.players) setPlayers(data.players)
         if (data.phase) setPhase(data.phase)
         if (data.currentPrompt) setCurrentPrompt(data.currentPrompt)
-        if (data.submissions) setSubmissions(data.submissions)
+        if (data.submissions) {
+          setSubmissions(data.submissions)
+          setSubmissionsList(Object.entries(data.submissions).map(([key, answer]) => ({ id: key, answer })))
+        }
         if (data.answered) setAnswered(data.answered)
         if (data.scores) setScores(data.scores)
+        if (data.round) setRound(data.round)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -78,13 +112,6 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
 
     return () => clearInterval(interval)
   }, [gameId, isHost])
-
-  const addPlayer = (name) => {
-    if (!name || players.find(p => p.name === name)) return
-    const newPlayers = [...players, { name }]
-    setPlayers(newPlayers)
-    setScores({ ...scores, [name]: 0 })
-  }
 
   const getNextPrompt = () => {
     const availablePrompts = PROMPTS.filter((_, i) => !usedPrompts.includes(i))
@@ -106,14 +133,14 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
 
     setCurrentPrompt(prompt)
     setSubmissions({})
+    setSubmissionsList([])
     setAnswered([])
     setRound(newRound)
     setPhase('playing')
+    setAnswerInput('')
 
     await syncGameState(gameId, {
       phase: 'playing',
-      players,
-      scores,
       currentPrompt: prompt,
       submissions: {},
       answered: [],
@@ -122,17 +149,16 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
   }
 
   const submitAnswer = async (answer) => {
+    if (!answer.trim()) return
+
     const newSubmissions = { ...submissions, [playerName]: answer }
     const newAnswered = [...answered, playerName]
 
     setSubmissions(newSubmissions)
     setAnswered(newAnswered)
+    setAnswerInput('')
 
     await syncGameState(gameId, {
-      phase: 'playing',
-      players,
-      scores,
-      currentPrompt,
       submissions: newSubmissions,
       answered: newAnswered
     })
@@ -142,124 +168,65 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
     setPhase('judging')
 
     await syncGameState(gameId, {
-      phase: 'judging',
-      players,
-      scores,
-      currentPrompt,
-      submissions,
-      answered
+      phase: 'judging'
     })
   }
 
-  const awardPoints = async (playerName, points = 10) => {
+  const awardPoints = async (submitterName, points = 10) => {
     const newScores = { ...scores }
-    newScores[playerName] = (newScores[playerName] || 0) + points
+    newScores[submitterName] = (newScores[submitterName] || 0) + points
 
     setScores(newScores)
 
     await syncGameState(gameId, {
-      phase: 'judging',
-      players,
-      scores: newScores,
-      currentPrompt,
-      submissions,
-      answered
+      scores: newScores
     })
   }
 
   const nextRound = async () => {
+    if (round >= maxRounds) {
+      setPhase('results')
+      await syncGameState(gameId, { phase: 'results', scores })
+      return
+    }
     startRound()
   }
 
-  if (!isHost && !playerName && phase === 'setup') {
+  // Setup/Waiting phase
+  if (phase === 'waiting') {
     return (
       <GameLayout title="🎭 Teams Against Humanity" onExit={onExit}>
-        <div className="setup-form">
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && playerName && setPhase('waiting')}
-          />
-          <button 
-            onClick={() => playerName && setPhase('waiting')}
-            className="btn-primary"
-          >
-            Join Game
-          </button>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '1.2rem', color: '#e8edf5', marginBottom: '1rem' }}>
+            Waiting for the host to start the game...
+          </p>
+          <p style={{ color: '#7a8ba8' }}>Players: {players.length}</p>
         </div>
       </GameLayout>
     )
   }
 
-  if (isHost && phase === 'setup') {
-    return (
-      <GameLayout title="🎭 Teams Against Humanity - Host" onExit={onExit}>
-        <div className="host-setup">
-          <h3>Add Players</h3>
-          <div className="players-input">
-            <input
-              type="text"
-              placeholder="Player name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && playerName) {
-                  addPlayer(playerName)
-                  setPlayerName('')
-                }
-              }}
-            />
-            <button onClick={() => {
-              addPlayer(playerName)
-              setPlayerName('')
-            }} className="btn-secondary">
-              Add
-            </button>
-          </div>
-
-          <div className="players-grid">
-            {players.map((p) => (
-              <div key={p.name} className="player-card">
-                <div className="player-avatar">🎭</div>
-                <div className="player-name">{p.name}</div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => startRound()}
-            className="btn-primary"
-            disabled={players.length < 2}
-          >
-            Start Game
-          </button>
-        </div>
-      </GameLayout>
-    )
-  }
-
+  // Playing phase (submitting answers)
   if (phase === 'playing') {
     return (
       <GameLayout title="🎭 Teams Against Humanity - Playing" onExit={onExit}>
         <div style={{ maxWidth: '800px' }}>
           {isHost && (
             <div className="host-info">
-              <p style={{ fontSize: '1.3rem', marginBottom: '1rem' }}>
+              <p style={{ fontSize: '1.3rem', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
                 🎯 {currentPrompt}
               </p>
-              <p style={{ color: '#AAA' }}>
+              <p style={{ color: '#7a8ba8' }}>
                 {answered.length}/{players.length} submitted
               </p>
               <div style={{ marginTop: '1rem' }}>
                 {answered.map(name => (
-                  <div key={name} style={{ color: '#27AE60', padding: '0.25rem' }}>✓ {name}</div>
+                  <div key={name} style={{ color: '#00f5d4', padding: '0.25rem', fontWeight: 600 }}>✓ {name}</div>
                 ))}
               </div>
 
               {answered.length === players.length && (
-                <button onClick={startJudging} className="btn-primary">
+                <button onClick={startJudging} className="btn-primary" style={{ marginTop: '2rem' }}>
                   Start Judging
                 </button>
               )}
@@ -268,7 +235,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
 
           {!isHost && !answered.includes(playerName) && (
             <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <p style={{ fontSize: '1.3rem', color: '#FFD700', marginBottom: '2rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '1.3rem', color: '#00f5d4', marginBottom: '2rem', textAlign: 'center', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
                 {currentPrompt}
               </p>
 
@@ -276,23 +243,34 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
                 <input
                   type="text"
                   placeholder="Type your answer..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && e.target.value) {
-                      submitAnswer(e.target.value)
-                      e.target.value = ''
+                  value={answerInput}
+                  onChange={(e) => setAnswerInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && answerInput.trim()) {
+                      submitAnswer(answerInput)
                     }
                   }}
-                  style={{ width: '100%', padding: '12px', marginBottom: '1rem' }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    marginBottom: '1rem',
+                    background: '#111827',
+                    border: '2px solid #00f5d4',
+                    borderRadius: '8px',
+                    color: '#e8edf5',
+                    fontSize: '1rem',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 245, 212, 0.18)'
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
                   autoFocus
                 />
                 <button
-                  onClick={(e) => {
-                    const input = e.target.previousElementSibling
-                    if (input.value) {
-                      submitAnswer(input.value)
-                      input.value = ''
-                    }
-                  }}
+                  onClick={() => submitAnswer(answerInput)}
                   className="btn-primary"
                 >
                   Submit Answer
@@ -302,7 +280,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
           )}
 
           {answered.includes(playerName) && (
-            <p style={{ textAlign: 'center', color: '#27AE60', fontSize: '1.1rem', fontWeight: 'bold' }}>
+            <p style={{ textAlign: 'center', color: '#00f5d4', fontSize: '1.1rem', fontWeight: 'bold' }}>
               ✓ Answer submitted! Waiting for others...
             </p>
           )}
@@ -311,86 +289,139 @@ export default function TeamsAgainstHumanity({ gameId, isHost, onExit }) {
     )
   }
 
+  // Judging phase
   if (phase === 'judging') {
     return (
       <GameLayout title="🎭 Teams Against Humanity - Judging" onExit={onExit}>
         <div style={{ maxWidth: '800px' }}>
           {isHost ? (
             <>
-              <p style={{ fontSize: '1.3rem', color: '#FFD700', marginBottom: '2rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '1.3rem', color: '#00f5d4', marginBottom: '2rem', textAlign: 'center', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
                 {currentPrompt}
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                {Object.entries(submissions).map(([author, answer]) => (
+                {submissionsList.map((item, idx) => (
                   <div
-                    key={author}
+                    key={idx}
                     style={{
-                      background: '#2a2a2a',
-                      border: '2px solid #FFD700',
-                      borderRadius: '8px',
+                      background: '#111827',
+                      border: '2px solid #1e2d47',
+                      borderRadius: '12px',
                       padding: '1.5rem',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      boxShadow: '0 0 10px rgba(0, 245, 212, 0.08)'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'scale(1.02)'
-                      e.currentTarget.style.borderColor = '#FFE700'
+                      e.currentTarget.style.borderColor = '#00f5d4'
+                      e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 245, 212, 0.2)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'scale(1)'
-                      e.currentTarget.style.borderColor = '#FFD700'
+                      e.currentTarget.style.borderColor = '#1e2d47'
+                      e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 245, 212, 0.08)'
                     }}
-                    onClick={() => awardPoints(author)}
+                    onClick={() => awardPoints(item.id)}
                   >
-                    <p style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.5rem', minHeight: '50px', display: 'flex', alignItems: 'center' }}>
-                      "{answer}"
+                    <p style={{ fontSize: '1rem', color: '#e8edf5', marginBottom: '0.5rem', minHeight: '50px', display: 'flex', alignItems: 'center' }}>
+                      "{item.answer}"
                     </p>
-                    <p style={{ fontSize: '0.9rem', color: '#AAA' }}>by {author}</p>
-                    <button style={{ marginTop: '0.5rem', width: '100%' }} className="btn-primary">
+                    <button style={{ width: '100%', marginTop: '0.5rem' }} className="btn-primary">
                       👑 Award Points
                     </button>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: '#1a2a3a', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
-                <h4 style={{ color: '#FFD700', marginBottom: '1rem' }}>Scores</h4>
+              <div style={{ background: '#0f1419', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #1e2d47' }}>
+                <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>Scores</h4>
                 {Object.entries(scores)
                   .sort(([,a], [,b]) => b - a)
                   .map(([name, score]) => (
-                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #444', color: '#fff' }}>
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #1e2d47', color: '#e8edf5' }}>
                       <span>{name}</span>
-                      <span style={{ color: '#FFD700' }}>{score}</span>
+                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{score}</span>
                     </div>
                   ))}
               </div>
 
               <button onClick={nextRound} className="btn-primary">
-                Next Round
+                {round >= maxRounds ? 'View Results' : 'Next Round'}
               </button>
             </>
           ) : (
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: '1.2rem', color: '#FFD700' }}>
+              <p style={{ fontSize: '1.2rem', color: '#00f5d4', marginBottom: '2rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
                 {currentPrompt}
               </p>
-              <p style={{ color: '#AAA', marginTop: '2rem' }}>
+              <p style={{ color: '#7a8ba8', marginTop: '2rem', marginBottom: '2rem' }}>
                 Waiting for host to judge...
               </p>
 
-              <div style={{ marginTop: '2rem', background: '#1a2a3a', padding: '1.5rem', borderRadius: '8px' }}>
-                <h4 style={{ color: '#FFD700', marginBottom: '1rem' }}>Scores</h4>
+              <div style={{ background: '#0f1419', padding: '1.5rem', borderRadius: '8px', border: '1px solid #1e2d47' }}>
+                <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>Scores</h4>
                 {Object.entries(scores)
                   .sort(([,a], [,b]) => b - a)
                   .map(([name, score]) => (
-                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #444', color: '#fff' }}>
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #1e2d47', color: '#e8edf5' }}>
                       <span>{name}</span>
-                      <span style={{ color: '#FFD700' }}>{score}</span>
+                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{score}</span>
                     </div>
                   ))}
               </div>
             </div>
+          )}
+        </div>
+      </GameLayout>
+    )
+  }
+
+  // Results phase
+  if (phase === 'results') {
+    const sortedScores = Object.entries(scores).sort(([,a], [,b]) => b - a)
+    const medals = ['🥇', '🥈', '🥉']
+
+    return (
+      <GameLayout title="🎭 Teams Against Humanity - Final Results!" onExit={onExit}>
+        <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+          <h2 style={{ color: '#00f5d4', marginBottom: '2rem', fontSize: '2.5rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+            Game Over!
+          </h2>
+
+          <div style={{ marginBottom: '2rem' }}>
+            {sortedScores.map(([name, score], idx) => (
+              <div
+                key={name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem',
+                  background: '#111827',
+                  borderRadius: '12px',
+                  marginBottom: '0.75rem',
+                  border: idx === 0 ? '2px solid #f59e0b' : '1px solid #1e2d47',
+                  boxShadow: idx === 0 ? '0 0 20px rgba(245, 158, 11, 0.2)' : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span style={{ fontSize: '2rem' }}>{medals[idx] || '🎭'}</span>
+                  <span style={{ color: '#e8edf5', fontSize: '1.1rem', fontWeight: 600 }}>{name}</span>
+                </div>
+                <span style={{ color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold' }}>{score}</span>
+              </div>
+            ))}
+          </div>
+
+          {isHost && (
+            <button onClick={onGameEnd} className="btn-primary">
+              Return to Menu
+            </button>
+          )}
+          {!isHost && (
+            <p style={{ color: '#7a8ba8' }}>Waiting for host to return to menu...</p>
           )}
         </div>
       </GameLayout>

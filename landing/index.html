@@ -5,949 +5,233 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Team Game Lounge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
-
-/* ============================================================
-   CSS VARIABLES — DARK & LIGHT MODE
-   ============================================================ */
-:root {
-  --transition: 0.35s cubic-bezier(.4,0,.2,1);
-}
+:root { --transition: 0.35s cubic-bezier(.4,0,.2,1); }
 
 [data-theme="dark"] {
-  --bg:          #080c14;
-  --bg2:         #0d1220;
-  --surface:     #111827;
-  --surface2:    #1a2235;
-  --border:      #1e2d47;
-  --text:        #e8edf5;
-  --text2:       #7a8ba8;
-  --accent:      #00f5d4;
-  --accent2:     #7c3aed;
-  --accent3:     #f59e0b;
-  --glow:        rgba(0,245,212,0.18);
-  --glow2:       rgba(124,58,237,0.22);
-  --card-hover:  #151f33;
-  --modal-bg:    #0d1220ee;
-  --tag-bg:      rgba(0,245,212,0.1);
-  --tag-color:   #00f5d4;
-  --badge-bg:    rgba(124,58,237,0.15);
-  --badge-color: #a78bfa;
-  --scanline: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,245,212,0.015) 2px,
-    rgba(0,245,212,0.015) 4px
-  );
+  --bg:#080c14; --bg2:#0d1220; --surface:#111827; --surface2:#1a2235;
+  --border:#1e2d47; --text:#e8edf5; --text2:#7a8ba8;
+  --accent:#00f5d4; --accent2:#7c3aed; --accent3:#f59e0b;
+  --glow:rgba(0,245,212,0.18); --glow2:rgba(124,58,237,0.22);
+  --card-hover:#151f33; --modal-bg:#0d1220ee;
+  --tag-bg:rgba(0,245,212,0.1); --tag-color:#00f5d4;
+  --badge-bg:rgba(124,58,237,0.15); --badge-color:#a78bfa;
+  --scanline:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,212,0.015) 2px,rgba(0,245,212,0.015) 4px);
 }
-
 [data-theme="light"] {
-  --bg:          #f0f4ff;
-  --bg2:         #e4eafc;
-  --surface:     #ffffff;
-  --surface2:    #f7f9ff;
-  --border:      #d0d9f0;
-  --text:        #111827;
-  --text2:       #5a6a8a;
-  --accent:      #0891b2;
-  --accent2:     #7c3aed;
-  --accent3:     #d97706;
-  --glow:        rgba(8,145,178,0.12);
-  --glow2:       rgba(124,58,237,0.12);
-  --card-hover:  #eef2ff;
-  --modal-bg:    #e4eafcee;
-  --tag-bg:      rgba(8,145,178,0.1);
-  --tag-color:   #0891b2;
-  --badge-bg:    rgba(124,58,237,0.1);
-  --badge-color: #7c3aed;
-  --scanline: none;
+  --bg:#f0f4ff; --bg2:#e4eafc; --surface:#ffffff; --surface2:#f7f9ff;
+  --border:#d0d9f0; --text:#111827; --text2:#5a6a8a;
+  --accent:#0891b2; --accent2:#7c3aed; --accent3:#d97706;
+  --glow:rgba(8,145,178,0.12); --glow2:rgba(124,58,237,0.12);
+  --card-hover:#eef2ff; --modal-bg:#e4eafcee;
+  --tag-bg:rgba(8,145,178,0.1); --tag-color:#0891b2;
+  --badge-bg:rgba(124,58,237,0.1); --badge-color:#7c3aed;
+  --scanline:none;
 }
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background var(--transition),color var(--transition);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointer-events:none;z-index:0}
+.blob{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.5;animation:drift 12s ease-in-out infinite alternate}
+.blob-1{width:600px;height:600px;top:-200px;left:-100px;background:var(--glow2)}
+.blob-2{width:500px;height:500px;bottom:-150px;right:-100px;background:var(--glow);animation-delay:-6s}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.08)}}
+.wrapper{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 24px}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);transition:background var(--transition),border-color var(--transition)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 0 20px var(--glow)}
+.logo-text{font-family:'Unbounded',sans-serif;font-size:clamp(0.85rem,2vw,1.05rem);font-weight:900;color:var(--text);line-height:1.1;letter-spacing:-0.5px}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:16px}
+.nav-link{font-size:14px;color:var(--text2);text-decoration:none;transition:color 0.2s;font-weight:500;display:none}
+@media(min-width:640px){.nav-link{display:block}}
+.nav-link:hover{color:var(--accent)}
+.theme-toggle{position:relative;width:56px;height:28px;background:var(--surface2);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;transition:all var(--transition);flex-shrink:0}
+.theme-toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;transition:transform var(--transition);box-shadow:0 0 10px var(--glow)}
+[data-theme="light"] .theme-toggle::after{transform:translateX(28px)}
+.toggle-icons{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 6px;font-size:12px;pointer-events:none}
+.btn-launch-header{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;transition:opacity 0.2s,transform 0.2s;box-shadow:0 0 20px var(--glow)}
+.btn-launch-header:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-admin-header{background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;white-space:nowrap;transition:all 0.2s}
+.btn-admin-header:hover{border-color:var(--accent);color:var(--accent)}
+
+/* HERO */
+.hero{padding:80px 0 60px;text-align:center;position:relative}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--tag-bg);color:var(--tag-color);border:1px solid currentColor;border-radius:999px;padding:5px 14px;font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;margin-bottom:24px;animation:fade-up 0.6s ease both}
+.hero h1{font-family:'Unbounded',sans-serif;font-size:clamp(2.2rem,6vw,4.5rem);font-weight:900;line-height:1.05;letter-spacing:-2px;margin-bottom:20px;animation:fade-up 0.6s 0.1s ease both}
+.hero h1 .accent{color:var(--accent)}
+.hero h1 .accent2{color:var(--accent2)}
+.hero p{font-size:clamp(1rem,2vw,1.2rem);color:var(--text2);max-width:540px;margin:0 auto 36px;line-height:1.7;animation:fade-up 0.6s 0.2s ease both;font-weight:300}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fade-up 0.6s 0.3s ease both}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:10px;padding:14px 28px;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity 0.2s,transform 0.2s;box-shadow:0 0 30px var(--glow);letter-spacing:-0.3px}
+.btn-primary:hover{opacity:0.88;transform:translateY(-2px)}
+.btn-secondary{background:transparent;color:var(--text);border:1.5px solid var(--border);border-radius:10px;padding:14px 28px;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:all 0.2s;letter-spacing:-0.3px}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+@keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.stats-row{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:40px 0 0;animation:fade-up 0.6s 0.4s ease both}
+.stat{text-align:center}
+.stat-number{font-family:'Unbounded',sans-serif;font-size:1.8rem;font-weight:900;color:var(--accent);letter-spacing:-1px}
+.stat-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* SECTIONS */
+.section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;gap:16px}
+.section-title{font-family:'Unbounded',sans-serif;font-size:clamp(1.1rem,2.5vw,1.4rem);font-weight:900;letter-spacing:-0.5px}
+.section-title span{color:var(--accent)}
+.section-sub{font-size:13px;color:var(--text2);font-weight:300}
+
+/* LEADERBOARD */
+.leaderboard-section{padding:20px 0 60px}
+.leaderboard-grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:768px){.leaderboard-grid{grid-template-columns:1fr 1fr}}
+.champion-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;position:relative;overflow:hidden;transition:background var(--transition),border-color var(--transition)}
+.champion-card::before{content:'';position:absolute;top:-1px;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.champion-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent3);font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.champion-player{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.champion-avatar{width:60px;height:60px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 24px var(--glow)}
+.champion-info h3{font-family:'Unbounded',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:-0.5px}
+.champion-info p{font-size:13px;color:var(--text2);margin-top:4px}
+.champion-score{font-family:'Unbounded',sans-serif;font-size:2rem;font-weight:900;color:var(--accent);letter-spacing:-1px}
+.champion-score span{font-size:0.9rem;color:var(--text2);font-family:'DM Sans',sans-serif;font-weight:300}
+.rankings-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;transition:background var(--transition),border-color var(--transition)}
+.rank-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);transition:background 0.15s;border-radius:8px;cursor:default}
+.rank-row:last-child{border-bottom:none}
+.rank-row:hover{background:var(--card-hover);padding-left:8px}
+.rank-num{font-family:'Unbounded',sans-serif;font-size:0.75rem;font-weight:900;color:var(--text2);width:24px;text-align:center;flex-shrink:0}
+.rank-num.gold{color:#f59e0b}.rank-num.silver{color:#94a3b8}.rank-num.bronze{color:#b45309}
+.rank-avatar{font-size:24px;flex-shrink:0}
+.rank-name{flex:1;font-weight:500;font-size:14px}
+.rank-game{font-size:12px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:4px}
+.rank-pts{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0}
+
+/* GAMES */
+.games-section{padding:0 0 80px}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.game-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;cursor:pointer;transition:transform 0.25s,box-shadow 0.25s,border-color 0.25s,background var(--transition);position:relative;animation:fade-up 0.5s ease both}
+.game-card:nth-child(1){animation-delay:0s}.game-card:nth-child(2){animation-delay:0.07s}.game-card:nth-child(3){animation-delay:0.14s}
+.game-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,0.3),0 0 30px var(--glow);border-color:var(--accent);background:var(--card-hover)}
+.game-card-thumbnail{height:160px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative;overflow:hidden}
+.game-card:nth-child(1) .game-card-thumbnail{background:linear-gradient(135deg,#0d1f3a,#1a3a5c)}
+.game-card:nth-child(2) .game-card-thumbnail{background:linear-gradient(135deg,#1a0d2e,#2d1548)}
+.game-card:nth-child(3) .game-card-thumbnail{background:linear-gradient(135deg,#1a2010,#2d3a18)}
+[data-theme="light"] .game-card:nth-child(1) .game-card-thumbnail{background:linear-gradient(135deg,#dbeafe,#bfdbfe)}
+[data-theme="light"] .game-card:nth-child(2) .game-card-thumbnail{background:linear-gradient(135deg,#ede9fe,#ddd6fe)}
+[data-theme="light"] .game-card:nth-child(3) .game-card-thumbnail{background:linear-gradient(135deg,#dcfce7,#bbf7d0)}
+.game-card-thumbnail::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,var(--surface),transparent 50%)}
+.game-card-body{padding:20px}
+.game-card-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tag{background:var(--tag-bg);color:var(--tag-color);font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;letter-spacing:0.5px}
+.tag.purple{background:var(--badge-bg);color:var(--badge-color)}
+.tag.amber{background:rgba(245,158,11,0.1);color:#f59e0b}
+.game-card-title{font-family:'Unbounded',sans-serif;font-size:1rem;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px}
+.game-card-desc{font-size:13px;color:var(--text2);line-height:1.6;font-weight:300;margin-bottom:16px}
+.game-card-footer{display:flex;align-items:center;justify-content:space-between}
+.game-card-stats{font-size:12px;color:var(--text2);display:flex;gap:12px}
+.game-card-stats span{display:flex;align-items:center;gap:4px}
+.btn-card{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;font-family:'Unbounded',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:-0.3px}
+.game-card:hover .btn-card{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--modal-bg);border:1px solid var(--border);border-radius:24px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;transform:scale(0.9) translateY(20px);transition:transform 0.35s cubic-bezier(.34,1.56,.64,1);position:relative}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-thumbnail{height:180px;display:flex;align-items:center;justify-content:center;font-size:80px;border-radius:20px 20px 0 0;position:relative}
+.modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;z-index:10}
+.modal-close:hover{background:rgba(255,255,255,0.2)}
+.modal-body{padding:28px}
+.modal-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.modal-title{font-family:'Unbounded',sans-serif;font-size:1.5rem;font-weight:900;letter-spacing:-1px;margin-bottom:12px}
+.modal-desc{font-size:14px;color:var(--text2);line-height:1.7;font-weight:300;margin-bottom:24px}
+.modal-how-to{background:var(--surface2);border-radius:14px;padding:20px;margin-bottom:24px}
+.modal-how-to h4{font-family:'Unbounded',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:14px}
+.how-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;font-size:13px;color:var(--text2);line-height:1.5}
+.how-step:last-child{margin-bottom:0}
+.step-num{width:22px;height:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0;margin-top:1px}
+.modal-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.modal-stat{background:var(--surface2);border-radius:12px;padding:14px;text-align:center}
+.modal-stat-value{font-family:'Unbounded',sans-serif;font-size:1.2rem;font-weight:900;color:var(--accent);letter-spacing:-0.5px}
+.modal-stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.modal-actions{display:flex;gap:12px}
+.btn-launch{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:15px;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s,transform 0.2s;box-shadow:0 0 30px var(--glow);letter-spacing:-0.5px}
+.btn-launch:hover{opacity:0.88;transform:translateY(-2px)}
+.btn-dismiss{background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;padding:15px 20px;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-dismiss:hover{border-color:var(--accent);color:var(--accent)}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:32px 0;text-align:center}
+.footer-inner{display:flex;flex-direction:column;align-items:center;gap:12px}
+.footer-logo{font-family:'Unbounded',sans-serif;font-size:0.9rem;font-weight:900;color:var(--text2)}
+.footer-logo span{color:var(--accent)}
+.footer-text{font-size:13px;color:var(--text2);font-weight:300}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 
 /* ============================================================
-   BASE
+   ADMIN PANEL
    ============================================================ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  transition: background var(--transition), color var(--transition);
-  overflow-x: hidden;
-}
-
-/* Scanline overlay (dark mode only) */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: var(--scanline);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Ambient glow blobs */
-.blob {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.5;
-  animation: drift 12s ease-in-out infinite alternate;
-}
-.blob-1 { width: 600px; height: 600px; top: -200px; left: -100px; background: var(--glow2); }
-.blob-2 { width: 500px; height: 500px; bottom: -150px; right: -100px; background: var(--glow); animation-delay: -6s; }
-
-@keyframes drift {
-  from { transform: translate(0,0) scale(1); }
-  to   { transform: translate(40px,30px) scale(1.08); }
-}
-
-.wrapper {
-  position: relative;
-  z-index: 1;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  transition: background var(--transition), border-color var(--transition);
-}
-
-.header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 68px;
-  gap: 16px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.logo-icon {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-  box-shadow: 0 0 20px var(--glow);
-}
-
-.logo-text {
-  font-family: 'Unbounded', sans-serif;
-  font-size: clamp(0.85rem, 2vw, 1.05rem);
-  font-weight: 900;
-  color: var(--text);
-  line-height: 1.1;
-  letter-spacing: -0.5px;
-}
-
-.logo-text span { color: var(--accent); }
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.nav-link {
-  font-size: 14px;
-  color: var(--text2);
-  text-decoration: none;
-  transition: color 0.2s;
-  font-weight: 500;
-  display: none;
-}
-
-@media (min-width: 640px) { .nav-link { display: block; } }
-
-.nav-link:hover { color: var(--accent); }
-
-/* Theme toggle */
-.theme-toggle {
-  position: relative;
-  width: 56px; height: 28px;
-  background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all var(--transition);
-  flex-shrink: 0;
-}
-
-.theme-toggle::after {
-  content: '';
-  position: absolute;
-  top: 3px; left: 3px;
-  width: 20px; height: 20px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 50%;
-  transition: transform var(--transition);
-  box-shadow: 0 0 10px var(--glow);
-}
-
-[data-theme="light"] .theme-toggle::after {
-  transform: translateX(28px);
-}
-
-.toggle-icons {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 6px;
-  font-size: 12px;
-  pointer-events: none;
-}
-
-.btn-launch-header {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 0 20px var(--glow);
-}
-
-.btn-launch-header:hover { opacity: 0.88; transform: translateY(-1px); }
-
-/* ============================================================
-   HERO
-   ============================================================ */
-.hero {
-  padding: 80px 0 60px;
-  text-align: center;
-  position: relative;
-}
-
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--tag-bg);
-  color: var(--tag-color);
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  padding: 5px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 24px;
-  animation: fade-up 0.6s ease both;
-}
-
-.hero h1 {
-  font-family: 'Unbounded', sans-serif;
-  font-size: clamp(2.2rem, 6vw, 4.5rem);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -2px;
-  margin-bottom: 20px;
-  animation: fade-up 0.6s 0.1s ease both;
-}
-
-.hero h1 .accent { color: var(--accent); }
-.hero h1 .accent2 { color: var(--accent2); }
-
-.hero p {
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  color: var(--text2);
-  max-width: 540px;
-  margin: 0 auto 36px;
-  line-height: 1.7;
-  animation: fade-up 0.6s 0.2s ease both;
-  font-weight: 300;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-  animation: fade-up 0.6s 0.3s ease both;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 14px 28px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 0 30px var(--glow);
-  letter-spacing: -0.3px;
-}
-.btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
-
-.btn-secondary {
-  background: transparent;
-  color: var(--text);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 28px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.2s;
-  letter-spacing: -0.3px;
-}
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Stats row */
-.stats-row {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  flex-wrap: wrap;
-  padding: 40px 0 0;
-  animation: fade-up 0.6s 0.4s ease both;
-}
-
-.stat {
-  text-align: center;
-}
-
-.stat-number {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: var(--accent);
-  letter-spacing: -1px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 2px;
-}
-
-/* ============================================================
-   SECTION HEADINGS
-   ============================================================ */
-.section-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 28px;
-  gap: 16px;
-}
-
-.section-title {
-  font-family: 'Unbounded', sans-serif;
-  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
-  font-weight: 900;
-  letter-spacing: -0.5px;
-}
-
-.section-title span { color: var(--accent); }
-
-.section-sub {
-  font-size: 13px;
-  color: var(--text2);
-  font-weight: 300;
-}
-
-/* ============================================================
-   LEADERBOARD
-   ============================================================ */
-.leaderboard-section {
-  padding: 20px 0 60px;
-}
-
-.leaderboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 768px) {
-  .leaderboard-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Champion card */
-.champion-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 28px;
-  position: relative;
-  overflow: hidden;
-  transition: background var(--transition), border-color var(--transition);
-}
-
-.champion-card::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-}
-
-.champion-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--accent3);
-  font-weight: 700;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.champion-player {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.champion-avatar {
-  width: 60px; height: 60px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  flex-shrink: 0;
-  box-shadow: 0 0 24px var(--glow);
-}
-
-.champion-info h3 {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-}
-
-.champion-info p {
-  font-size: 13px;
-  color: var(--text2);
-  margin-top: 4px;
-}
-
-.champion-score {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--accent);
-  letter-spacing: -1px;
-}
-
-.champion-score span {
-  font-size: 0.9rem;
-  color: var(--text2);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 300;
-}
-
-/* Rankings list */
-.rankings-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 28px;
-  transition: background var(--transition), border-color var(--transition);
-}
-
-.rank-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-  border-radius: 8px;
-  cursor: default;
-}
-
-.rank-row:last-child { border-bottom: none; }
-.rank-row:hover { background: var(--card-hover); padding-left: 8px; }
-
-.rank-num {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 900;
-  color: var(--text2);
-  width: 24px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.rank-num.gold   { color: #f59e0b; }
-.rank-num.silver { color: #94a3b8; }
-.rank-num.bronze { color: #b45309; }
-
-.rank-avatar {
-  font-size: 24px;
-  flex-shrink: 0;
-}
-
-.rank-name {
-  flex: 1;
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.rank-game {
-  font-size: 12px;
-  color: var(--text2);
-  background: var(--surface2);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.rank-pts {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-/* ============================================================
-   GAMES GRID
-   ============================================================ */
-.games-section {
-  padding: 0 0 80px;
-}
-
-.games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.game-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s, background var(--transition);
-  position: relative;
-  animation: fade-up 0.5s ease both;
-}
-
-.game-card:nth-child(1) { animation-delay: 0s; }
-.game-card:nth-child(2) { animation-delay: 0.07s; }
-.game-card:nth-child(3) { animation-delay: 0.14s; }
-
-.game-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 30px var(--glow);
-  border-color: var(--accent);
-  background: var(--card-hover);
-}
-
-.game-card-thumbnail {
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72px;
-  position: relative;
-  overflow: hidden;
-}
-
-.game-card:nth-child(1) .game-card-thumbnail { background: linear-gradient(135deg, #0d1f3a, #1a3a5c); }
-.game-card:nth-child(2) .game-card-thumbnail { background: linear-gradient(135deg, #1a0d2e, #2d1548); }
-.game-card:nth-child(3) .game-card-thumbnail { background: linear-gradient(135deg, #1a2010, #2d3a18); }
-
-[data-theme="light"] .game-card:nth-child(1) .game-card-thumbnail { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-[data-theme="light"] .game-card:nth-child(2) .game-card-thumbnail { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
-[data-theme="light"] .game-card:nth-child(3) .game-card-thumbnail { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
-
-.game-card-thumbnail::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, var(--surface), transparent 50%);
-}
-
-.game-card-body {
-  padding: 20px;
-}
-
-.game-card-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.tag {
-  background: var(--tag-bg);
-  color: var(--tag-color);
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
-.tag.purple {
-  background: var(--badge-bg);
-  color: var(--badge-color);
-}
-
-.tag.amber {
-  background: rgba(245,158,11,0.1);
-  color: #f59e0b;
-}
-
-.game-card-title {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1rem;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-}
-
-.game-card-desc {
-  font-size: 13px;
-  color: var(--text2);
-  line-height: 1.6;
-  font-weight: 300;
-  margin-bottom: 16px;
-}
-
-.game-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.game-card-stats {
-  font-size: 12px;
-  color: var(--text2);
-  display: flex;
-  gap: 12px;
-}
-
-.game-card-stats span { display: flex; align-items: center; gap: 4px; }
-
-.btn-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Unbounded', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
-  letter-spacing: -0.3px;
-}
-
-.game-card:hover .btn-card {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  border-color: transparent;
-}
-
-/* ============================================================
-   MODAL
-   ============================================================ */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(8px);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-
-.modal-overlay.open {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.modal {
-  background: var(--modal-bg);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  max-width: 580px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: scale(0.9) translateY(20px);
-  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
-  position: relative;
-}
-
-.modal-overlay.open .modal {
-  transform: scale(1) translateY(0);
-}
-
-.modal-thumbnail {
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 80px;
-  border-radius: 20px 20px 0 0;
-  position: relative;
-}
-
-.modal-close {
-  position: absolute;
-  top: 16px; right: 16px;
-  width: 36px; height: 36px;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-  z-index: 10;
-}
-
-.modal-close:hover { background: rgba(255,255,255,0.2); }
-
-.modal-body {
-  padding: 28px;
-}
-
-.modal-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.modal-title {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -1px;
-  margin-bottom: 12px;
-}
-
-.modal-desc {
-  font-size: 14px;
-  color: var(--text2);
-  line-height: 1.7;
-  font-weight: 300;
-  margin-bottom: 24px;
-}
-
-.modal-how-to {
-  background: var(--surface2);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 24px;
-}
-
-.modal-how-to h4 {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--accent);
-  margin-bottom: 14px;
-}
-
-.how-step {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
-  font-size: 13px;
-  color: var(--text2);
-  line-height: 1.5;
-}
-
-.how-step:last-child { margin-bottom: 0; }
-
-.step-num {
-  width: 22px; height: 22px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 900;
-  color: #fff;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.modal-stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.modal-stat {
-  background: var(--surface2);
-  border-radius: 12px;
-  padding: 14px;
-  text-align: center;
-}
-
-.modal-stat-value {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.2rem;
-  font-weight: 900;
-  color: var(--accent);
-  letter-spacing: -0.5px;
-}
-
-.modal-stat-label {
-  font-size: 11px;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 4px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-launch {
-  flex: 1;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 14px;
-  font-weight: 900;
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 0 30px var(--glow);
-  letter-spacing: -0.5px;
-}
-
-.btn-launch:hover { opacity: 0.88; transform: translateY(-2px); }
-
-.btn-dismiss {
-  background: var(--surface2);
-  color: var(--text2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 15px 20px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-dismiss:hover { border-color: var(--accent); color: var(--accent); }
-
-/* ============================================================
-   FOOTER
-   ============================================================ */
-footer {
-  border-top: 1px solid var(--border);
-  padding: 32px 0;
-  text-align: center;
-}
-
-.footer-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-logo {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 900;
-  color: var(--text2);
-}
-
-.footer-logo span { color: var(--accent); }
-
-.footer-text {
-  font-size: 13px;
-  color: var(--text2);
-  font-weight: 300;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.admin-overlay.open{display:flex}
+.admin-panel{background:#0d0d14;border:1px solid #2a2a3a;border-radius:20px;width:100%;max-width:860px;margin:auto;overflow:hidden}
+.admin-top{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid #2a2a3a;background:#111118}
+.admin-top h2{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#e8e8f0}
+.admin-top h2 span{color:var(--accent)}
+.btn-close-admin{background:transparent;border:1.5px solid #2a2a3a;color:#5a5a7a;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;transition:all 0.2s}
+.btn-close-admin:hover{border-color:#f87171;color:#f87171}
+.admin-body{padding:28px;display:flex;flex-direction:column;gap:28px}
+.admin-section h3{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:#5a5a7a;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+.a-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.a-grid-2{grid-template-columns:1fr}}
+.a-field{display:flex;flex-direction:column;gap:5px}
+.a-field label{font-size:11px;color:#5a5a7a;text-transform:uppercase;letter-spacing:1px}
+.a-field input,.a-field select{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:8px;color:#e8e8f0;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;outline:none;transition:border-color 0.2s;width:100%}
+.a-field input:focus,.a-field select:focus{border-color:var(--accent)}
+.a-field select option{background:#1a1a24}
+.player-edit-row{display:grid;grid-template-columns:28px 36px 1fr 100px 70px 32px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #1e1e2e}
+.player-edit-row:last-child{border-bottom:none}
+.row-rank{font-size:16px;text-align:center}
+.row-avatar-input{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:6px;color:#e8e8f0;font-size:16px;padding:6px;text-align:center;width:100%;outline:none}
+.row-avatar-input:focus{border-color:var(--accent)}
+.row-input{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:6px;color:#e8e8f0;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;transition:border-color 0.2s;width:100%}
+.row-input:focus{border-color:var(--accent)}
+.row-pts{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:6px;color:#f5c842;font-family:'JetBrains Mono',monospace;font-size:13px;padding:8px 6px;text-align:center;outline:none;width:100%}
+.row-pts:focus{border-color:var(--accent)}
+.row-game{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:6px;color:#a78bfa;font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 6px;text-align:center;outline:none;width:100%}
+.row-game:focus{border-color:var(--accent)}
+.btn-del{background:transparent;border:1.5px solid #2a2a3a;color:#5a5a7a;border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:12px;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.btn-del:hover{border-color:#f87171;color:#f87171}
+.btn-add-player{background:transparent;border:1.5px dashed #2a2a3a;color:#5a5a7a;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;width:100%;margin-top:10px;transition:all 0.2s;font-family:'DM Sans',sans-serif}
+.btn-add-player:hover{border-color:var(--accent);color:var(--accent)}
+.admin-actions{display:flex;gap:12px;padding-top:8px;border-top:1px solid #2a2a3a;flex-wrap:wrap}
+.btn-apply{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:10px;padding:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity 0.2s;min-width:160px}
+.btn-apply:hover{opacity:0.88}
+.btn-cancel{background:transparent;color:#5a5a7a;border:1.5px solid #2a2a3a;border-radius:10px;padding:14px 20px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all 0.2s}
+.btn-cancel:hover{border-color:#f87171;color:#f87171}
+
+/* Admin Login */
+.admin-login{display:flex;flex-direction:column;align-items:center;padding:60px 28px;gap:16px;text-align:center}
+.admin-login h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#e8e8f0}
+.admin-login p{font-size:13px;color:#5a5a7a;margin-bottom:8px}
+.admin-pw-input{background:#1a1a24;border:1.5px solid #2a2a3a;border-radius:10px;color:#e8e8f0;font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 20px;letter-spacing:4px;text-align:center;width:100%;max-width:300px;outline:none;transition:border-color 0.2s}
+.admin-pw-input:focus{border-color:var(--accent)}
+.btn-pw-submit{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:10px;padding:14px 32px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.2s;width:100%;max-width:300px}
+.btn-pw-submit:hover{opacity:0.88}
+.pw-error{color:#f87171;font-size:13px;display:none}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid #34d399;color:#34d399;border-radius:10px;padding:14px 20px;font-size:14px;font-weight:500;transform:translateY(100px);opacity:0;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
 </style>
 </head>
 <body>
-
 <div class="blob blob-1"></div>
 <div class="blob blob-2"></div>
 
@@ -965,9 +249,8 @@ footer {
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
           <div class="toggle-icons"><span>🌙</span><span>☀️</span></div>
         </button>
-        <a class="btn-launch-header" href="https://team-games-app.netlify.app" target="_blank">
-          Play Now →
-        </a>
+        <button class="btn-admin-header" onclick="openAdmin()">⚙️ Admin</button>
+        <a class="btn-launch-header" href="https://team-games-app.netlify.app" target="_blank">Play Now →</a>
       </div>
     </div>
   </div>
@@ -984,22 +267,10 @@ footer {
       <a class="btn-secondary" href="#games">Browse Games ↓</a>
     </div>
     <div class="stats-row">
-      <div class="stat">
-        <div class="stat-number">3</div>
-        <div class="stat-label">Games Available</div>
-      </div>
-      <div class="stat">
-        <div class="stat-number">20</div>
-        <div class="stat-label">Players Per Session</div>
-      </div>
-      <div class="stat">
-        <div class="stat-number">0</div>
-        <div class="stat-label">Downloads Needed</div>
-      </div>
-      <div class="stat">
-        <div class="stat-number">∞</div>
-        <div class="stat-label">Good Times</div>
-      </div>
+      <div class="stat"><div class="stat-number">3</div><div class="stat-label">Games Available</div></div>
+      <div class="stat"><div class="stat-number">20</div><div class="stat-label">Players Per Session</div></div>
+      <div class="stat"><div class="stat-number">0</div><div class="stat-label">Downloads Needed</div></div>
+      <div class="stat"><div class="stat-number">∞</div><div class="stat-label">Good Times</div></div>
     </div>
   </div>
 </section>
@@ -1014,66 +285,26 @@ footer {
       </div>
     </div>
     <div class="leaderboard-grid">
-
-      <!-- Champion spotlight -->
-      <div class="champion-card">
+      <div class="champion-card" id="championCard">
         <div class="champion-label">⭐ Champion of the Week</div>
         <div class="champion-player">
-          <div class="champion-avatar">🦸</div>
+          <div class="champion-avatar" id="champAvatarDisplay">🦸</div>
           <div class="champion-info">
-            <h3>Joanna H.</h3>
-            <p>Guess the Coworker · 5 wins</p>
+            <h3 id="champNameDisplay">Joanna H.</h3>
+            <p id="champSubDisplay">Guess the Coworker · 5 wins</p>
           </div>
         </div>
-        <div class="champion-score">320 <span>pts this week</span></div>
+        <div class="champion-score"><span id="champScoreDisplay">320</span> <span>pts this week</span></div>
       </div>
-
-      <!-- Rankings -->
       <div class="rankings-card">
-        <div class="section-title" style="font-size:0.85rem; margin-bottom:16px;">Top Players</div>
-
-        <div class="rank-row">
-          <div class="rank-num gold">🥇</div>
-          <div class="rank-avatar">🦸</div>
-          <div class="rank-name">Joanna H.</div>
-          <div class="rank-game">Coworker</div>
-          <div class="rank-pts">320</div>
-        </div>
-        <div class="rank-row">
-          <div class="rank-num silver">🥈</div>
-          <div class="rank-avatar">🐱</div>
-          <div class="rank-name">Tori M.</div>
-          <div class="rank-game">2 Truths</div>
-          <div class="rank-pts">280</div>
-        </div>
-        <div class="rank-row">
-          <div class="rank-num bronze">🥉</div>
-          <div class="rank-avatar">🦊</div>
-          <div class="rank-name">Alex R.</div>
-          <div class="rank-game">TAH</div>
-          <div class="rank-pts">245</div>
-        </div>
-        <div class="rank-row">
-          <div class="rank-num">4</div>
-          <div class="rank-avatar">🧙</div>
-          <div class="rank-name">Sam K.</div>
-          <div class="rank-game">Coworker</div>
-          <div class="rank-pts">210</div>
-        </div>
-        <div class="rank-row">
-          <div class="rank-num">5</div>
-          <div class="rank-avatar">🐉</div>
-          <div class="rank-name">Jordan T.</div>
-          <div class="rank-game">2 Truths</div>
-          <div class="rank-pts">185</div>
-        </div>
+        <div class="section-title" style="font-size:0.85rem;margin-bottom:16px;">Top Players</div>
+        <div id="rankingsDisplay"></div>
       </div>
-
     </div>
   </div>
 </section>
 
-<!-- GAMES GRID -->
+<!-- GAMES -->
 <section class="games-section" id="games">
   <div class="wrapper">
     <div class="section-header">
@@ -1082,66 +313,7 @@ footer {
         <div class="section-sub">Click any game to learn more</div>
       </div>
     </div>
-    <div class="games-grid">
-
-      <div class="game-card" onclick="openModal('coworker')">
-        <div class="game-card-thumbnail">👥</div>
-        <div class="game-card-body">
-          <div class="game-card-tags">
-            <span class="tag">Multiplayer</span>
-            <span class="tag purple">Voting</span>
-          </div>
-          <div class="game-card-title">Guess the Coworker</div>
-          <div class="game-card-desc">A mystery clue describes someone on your team. Can you figure out who it is before the timer runs out?</div>
-          <div class="game-card-footer">
-            <div class="game-card-stats">
-              <span>👥 2–20</span>
-              <span>⏱ ~15 min</span>
-            </div>
-            <button class="btn-card">View →</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-card" onclick="openModal('truths')">
-        <div class="game-card-thumbnail">🤥</div>
-        <div class="game-card-body">
-          <div class="game-card-tags">
-            <span class="tag">Multiplayer</span>
-            <span class="tag amber">Challenge</span>
-          </div>
-          <div class="game-card-title">2 Truths & A Lie</div>
-          <div class="game-card-desc">Share two truths and one lie about yourself. Teammates vote on which one is the fib — wrong guessers face a fun challenge!</div>
-          <div class="game-card-footer">
-            <div class="game-card-stats">
-              <span>👥 3–20</span>
-              <span>⏱ ~20 min</span>
-            </div>
-            <button class="btn-card">View →</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-card" onclick="openModal('tah')">
-        <div class="game-card-thumbnail">🎭</div>
-        <div class="game-card-body">
-          <div class="game-card-tags">
-            <span class="tag purple">Judge's Choice</span>
-            <span class="tag amber">Hilarious</span>
-          </div>
-          <div class="game-card-title">Teams Against Humanity</div>
-          <div class="game-card-desc">Match wild prompts with absurd answers. The host judge picks the funniest — points awarded for maximum chaos.</div>
-          <div class="game-card-footer">
-            <div class="game-card-stats">
-              <span>👥 4–20</span>
-              <span>⏱ ~25 min</span>
-            </div>
-            <button class="btn-card">View →</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
+    <div class="games-grid" id="gamesGrid"></div>
   </div>
 </section>
 
@@ -1155,7 +327,7 @@ footer {
   </div>
 </footer>
 
-<!-- MODAL -->
+<!-- GAME MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
   <div class="modal" id="modal">
     <div class="modal-thumbnail" id="modalThumb">
@@ -1165,134 +337,296 @@ footer {
       <div class="modal-tags" id="modalTags"></div>
       <div class="modal-title" id="modalTitle"></div>
       <div class="modal-desc" id="modalDesc"></div>
-      <div class="modal-how-to">
-        <h4>📋 How to Play</h4>
-        <div id="modalSteps"></div>
-      </div>
+      <div class="modal-how-to"><h4>📋 How to Play</h4><div id="modalSteps"></div></div>
       <div class="modal-stats-row" id="modalStats"></div>
       <div class="modal-actions">
-        <a class="btn-launch" id="modalLaunch" href="https://team-games-app.netlify.app" target="_blank">
-          🚀 Launch Game
-        </a>
+        <a class="btn-launch" href="https://team-games-app.netlify.app" target="_blank">🚀 Launch Game</a>
         <button class="btn-dismiss" onclick="closeModal()">Close</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ADMIN PANEL -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-panel">
+
+    <!-- Login -->
+    <div id="adminLogin">
+      <div class="admin-login">
+        <div style="font-size:2.5rem">🔧</div>
+        <h2>Admin Panel</h2>
+        <p>Enter your password to manage the leaderboard and games</p>
+        <input type="password" class="admin-pw-input" id="adminPwInput" placeholder="••••••••" />
+        <p class="pw-error" id="pwError">Incorrect password</p>
+        <button class="btn-pw-submit" onclick="checkPassword()">Enter →</button>
+        <button class="btn-cancel" onclick="closeAdmin()" style="max-width:300px;width:100%">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Editor (hidden until login) -->
+    <div id="adminEditor" style="display:none">
+      <div class="admin-top">
+        <h2>⚙️ TGL <span>Admin</span></h2>
+        <button class="btn-close-admin" onclick="closeAdmin()">✕ Close</button>
+      </div>
+      <div class="admin-body">
+
+        <!-- Champion -->
+        <div class="admin-section">
+          <h3>⭐ Champion of the Week</h3>
+          <div class="a-grid-2">
+            <div class="a-field"><label>Name</label><input id="aChampName" type="text" /></div>
+            <div class="a-field"><label>Avatar Emoji</label><input id="aChampAvatar" type="text" maxlength="2" /></div>
+            <div class="a-field"><label>Game</label>
+              <select id="aChampGame">
+                <option>Guess the Coworker</option>
+                <option>2 Truths & A Lie</option>
+                <option>Teams Against Humanity</option>
+              </select>
+            </div>
+            <div class="a-field"><label>Wins</label><input id="aChampWins" type="number" /></div>
+            <div class="a-field"><label>Points</label><input id="aChampScore" type="number" /></div>
+          </div>
+        </div>
+
+        <!-- Players -->
+        <div class="admin-section">
+          <h3>🏆 Top Players</h3>
+          <div id="adminPlayerRows"></div>
+          <button class="btn-add-player" onclick="addAdminPlayer()">+ Add Player</button>
+        </div>
+
+        <!-- Apply -->
+        <div class="admin-actions">
+          <button class="btn-apply" onclick="applyChanges()">✅ Apply Changes</button>
+          <button class="btn-cancel" onclick="closeAdmin()">Cancel</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-const GAMES = {
+// ── ADMIN PASSWORD ──────────────────────────────────────────
+const ADMIN_PW = 'admin1937'  // Change this to your own password!
+
+// ── DATA ────────────────────────────────────────────────────
+let leaderData = {
+  champ: { name:'Joanna H.', avatar:'🦸', game:'Guess the Coworker', wins:5, score:320 },
+  players: [
+    { avatar:'🦸', name:'Joanna H.', game:'Coworker', pts:320 },
+    { avatar:'🐱', name:'Tori M.',   game:'2 Truths', pts:280 },
+    { avatar:'🦊', name:'Alex R.',   game:'TAH',      pts:245 },
+    { avatar:'🧙', name:'Sam K.',    game:'Coworker', pts:210 },
+    { avatar:'🐉', name:'Jordan T.', game:'2 Truths', pts:185 },
+  ]
+}
+
+const GAMES_DATA = {
   coworker: {
-    emoji: '👥',
-    bg: 'linear-gradient(135deg, #0d1f3a, #1a3a5c)',
-    bgLight: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
-    tags: ['<span class="tag">Multiplayer</span>', '<span class="tag purple">Voting</span>'],
-    title: 'Guess the Coworker',
-    desc: 'A mystery clue is displayed describing someone on your team. Everyone votes simultaneously on who they think it describes — and the answer stays hidden until the votes are in!',
-    steps: [
-      'Host starts the game and shares a 6-character code',
-      'Players join on their own devices — no account needed',
-      'A clue appears describing one team member',
-      'Everyone votes on who they think it is (20 second timer)',
-      'Answer revealed — correct guesses earn 10 points',
-      'Leaderboard shown between rounds · 5 rounds total'
-    ],
-    stats: [
-      { value: '2–20', label: 'Players' },
-      { value: '5', label: 'Rounds' },
-      { value: '10 pts', label: 'Per Correct' }
-    ]
+    emoji:'👥', bg:'linear-gradient(135deg,#0d1f3a,#1a3a5c)', bgLight:'linear-gradient(135deg,#dbeafe,#bfdbfe)',
+    tags:['<span class="tag">Multiplayer</span>','<span class="tag purple">Voting</span>'],
+    title:'Guess the Coworker',
+    desc:'A mystery clue is displayed describing someone on your team. Everyone votes simultaneously — the answer stays hidden until votes are in!',
+    steps:['Host starts the game and shares a 6-character code','Players join on their own devices — no account needed','A clue appears describing one team member','Everyone votes on who they think it is (20 second timer)','Answer revealed — correct guesses earn 10 points','Leaderboard shown between rounds · 5 rounds total'],
+    stats:[{value:'2–20',label:'Players'},{value:'5',label:'Rounds'},{value:'10 pts',label:'Per Correct'}]
   },
   truths: {
-    emoji: '🤥',
-    bg: 'linear-gradient(135deg, #1a0d2e, #2d1548)',
-    bgLight: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
-    tags: ['<span class="tag">Multiplayer</span>', '<span class="tag amber">Challenge</span>'],
-    title: '2 Truths & A Lie',
-    desc: 'One player shares two true statements and one lie about themselves. Everyone else votes on which one is the fib. Guess wrong and face a hilarious team challenge!',
-    steps: [
-      'Host starts game — players join with the code',
-      'Active player submits 2 truths and 1 lie',
-      'Teammates vote on which statement is false',
-      'Players who guess wrong must complete a challenge',
-      'Correct guessers earn 5 points each',
-      'Roles rotate — everyone gets a turn'
-    ],
-    stats: [
-      { value: '3–20', label: 'Players' },
-      { value: 'Rotating', label: 'Active Player' },
-      { value: '5 pts', label: 'Per Correct' }
-    ]
+    emoji:'🤥', bg:'linear-gradient(135deg,#1a0d2e,#2d1548)', bgLight:'linear-gradient(135deg,#ede9fe,#ddd6fe)',
+    tags:['<span class="tag">Multiplayer</span>','<span class="tag amber">Challenge</span>'],
+    title:'2 Truths & A Lie',
+    desc:'One player shares two true statements and one lie. Everyone votes on which is the fib. Guess wrong and face a hilarious challenge!',
+    steps:['Host starts game — players join with the code','Active player submits 2 truths and 1 lie','Teammates vote on which statement is false','Players who guess wrong must complete a challenge','Correct guessers earn 5 points each','Roles rotate — everyone gets a turn'],
+    stats:[{value:'3–20',label:'Players'},{value:'Rotating',label:'Active Player'},{value:'5 pts',label:'Per Correct'}]
   },
   tah: {
-    emoji: '🎭',
-    bg: 'linear-gradient(135deg, #1a2010, #2d3a18)',
-    bgLight: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
-    tags: ['<span class="tag purple">Judge\'s Choice</span>', '<span class="tag amber">Hilarious</span>'],
-    title: 'Teams Against Humanity',
-    desc: 'A wild prompt appears on screen. Every player submits the most absurd, funny, or creative answer they can think of. The host judge picks their favorite — no right answer, just pure chaos.',
-    steps: [
-      'Host starts game — players join with the code',
-      'A prompt is displayed to all players',
-      'Each player submits their funniest answer',
-      'Host reads all answers aloud (anonymously)',
-      'Host picks the best one — that team gets 10 points',
-      'New prompt — repeat until everyone hurts from laughing'
-    ],
-    stats: [
-      { value: '4–20', label: 'Players' },
-      { value: 'Host', label: 'Judges' },
-      { value: '10 pts', label: 'Per Win' }
-    ]
+    emoji:'🎭', bg:'linear-gradient(135deg,#1a2010,#2d3a18)', bgLight:'linear-gradient(135deg,#dcfce7,#bbf7d0)',
+    tags:['<span class="tag purple">Judge\'s Choice</span>','<span class="tag amber">Hilarious</span>'],
+    title:'Teams Against Humanity',
+    desc:'A wild prompt appears. Every player submits the most absurd answer they can think of. The host judge picks their favorite — pure chaos.',
+    steps:['Host starts game — players join with the code','A prompt is displayed to all players','Each player submits their funniest answer','Host reads all answers aloud (anonymously)','Host picks the best one — that player gets 10 points','New prompt — repeat until everyone hurts from laughing'],
+    stats:[{value:'4–20',label:'Players'},{value:'Host',label:'Judges'},{value:'10 pts',label:'Per Win'}]
   }
 }
 
+const MEDALS = ['🥇','🥈','🥉']
+const RANK_CLASSES = ['gold','silver','bronze']
+
+// ── RENDER LEADERBOARD ──────────────────────────────────────
+function renderLeaderboard() {
+  const c = leaderData.champ
+  document.getElementById('champAvatarDisplay').textContent = c.avatar
+  document.getElementById('champNameDisplay').textContent = c.name
+  document.getElementById('champSubDisplay').textContent = c.game + ' · ' + c.wins + ' wins'
+  document.getElementById('champScoreDisplay').textContent = c.score
+
+  document.getElementById('rankingsDisplay').innerHTML = leaderData.players.map((p, i) =>
+    '<div class="rank-row">' +
+    '<div class="rank-num ' + (RANK_CLASSES[i] || '') + '">' + (MEDALS[i] || (i+1)) + '</div>' +
+    '<div class="rank-avatar">' + p.avatar + '</div>' +
+    '<div class="rank-name">' + p.name + '</div>' +
+    '<div class="rank-game">' + p.game + '</div>' +
+    '<div class="rank-pts">' + p.pts + '</div>' +
+    '</div>'
+  ).join('')
+}
+
+// ── RENDER GAMES ────────────────────────────────────────────
+function renderGames() {
+  const keys = Object.keys(GAMES_DATA)
+  document.getElementById('gamesGrid').innerHTML = keys.map((key, i) => {
+    const g = GAMES_DATA[key]
+    return '<div class="game-card" onclick="openModal(\'' + key + '\')" style="animation-delay:' + (i*0.07) + 's">' +
+      '<div class="game-card-thumbnail" style="background:' + g.bg + '">' + g.emoji + '</div>' +
+      '<div class="game-card-body">' +
+      '<div class="game-card-tags">' + g.tags.join('') + '</div>' +
+      '<div class="game-card-title">' + g.title + '</div>' +
+      '<div class="game-card-desc">' + g.desc + '</div>' +
+      '<div class="game-card-footer"><div class="game-card-stats"><span>👥 2–20</span><span>⏱ ~15 min</span></div>' +
+      '<button class="btn-card">View →</button></div>' +
+      '</div></div>'
+  }).join('')
+}
+
+// ── MODAL ───────────────────────────────────────────────────
 function openModal(id) {
-  const g = GAMES[id]
+  const g = GAMES_DATA[id]
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-
   document.getElementById('modalThumb').style.background = isDark ? g.bg : g.bgLight
-  document.getElementById('modalThumb').style.fontSize = '80px'
   document.getElementById('modalThumb').childNodes[0].textContent = g.emoji
-
   document.getElementById('modalTags').innerHTML = g.tags.join('')
   document.getElementById('modalTitle').textContent = g.title
   document.getElementById('modalDesc').textContent = g.desc
-
-  document.getElementById('modalSteps').innerHTML = g.steps.map((s, i) =>
-    `<div class="how-step">
-      <div class="step-num">${i+1}</div>
-      <div>${s}</div>
-    </div>`
+  document.getElementById('modalSteps').innerHTML = g.steps.map((s,i) =>
+    '<div class="how-step"><div class="step-num">'+(i+1)+'</div><div>'+s+'</div></div>'
   ).join('')
-
   document.getElementById('modalStats').innerHTML = g.stats.map(s =>
-    `<div class="modal-stat">
-      <div class="modal-stat-value">${s.value}</div>
-      <div class="modal-stat-label">${s.label}</div>
-    </div>`
+    '<div class="modal-stat"><div class="modal-stat-value">'+s.value+'</div><div class="modal-stat-label">'+s.label+'</div></div>'
   ).join('')
-
   document.getElementById('modalOverlay').classList.add('open')
   document.body.style.overflow = 'hidden'
 }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); document.body.style.overflow = '' }
+function closeModalOnBg(e) { if(e.target===document.getElementById('modalOverlay')) closeModal() }
 
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open')
+// ── THEME ───────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement
+  html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark'?'light':'dark')
+}
+
+// ── ADMIN ───────────────────────────────────────────────────
+function openAdmin() {
+  document.getElementById('adminOverlay').classList.add('open')
+  document.getElementById('adminLogin').style.display = 'block'
+  document.getElementById('adminEditor').style.display = 'none'
+  document.getElementById('adminPwInput').value = ''
+  document.getElementById('pwError').style.display = 'none'
+  document.body.style.overflow = 'hidden'
+}
+
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('open')
   document.body.style.overflow = ''
 }
 
-function closeModalOnBg(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeModal()
+function checkPassword() {
+  const val = document.getElementById('adminPwInput').value
+  if(val === ADMIN_PW) {
+    document.getElementById('adminLogin').style.display = 'none'
+    document.getElementById('adminEditor').style.display = 'block'
+    populateAdminFields()
+  } else {
+    document.getElementById('pwError').style.display = 'block'
+  }
 }
 
-function toggleTheme() {
-  const html = document.documentElement
-  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+document.getElementById('adminPwInput').addEventListener('keydown', e => {
+  if(e.key==='Enter') checkPassword()
+})
+
+function populateAdminFields() {
+  const c = leaderData.champ
+  document.getElementById('aChampName').value = c.name
+  document.getElementById('aChampAvatar').value = c.avatar
+  document.getElementById('aChampGame').value = c.game
+  document.getElementById('aChampWins').value = c.wins
+  document.getElementById('aChampScore').value = c.score
+  renderAdminPlayers()
 }
 
-// Close modal on Escape key
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal() })
+function renderAdminPlayers() {
+  document.getElementById('adminPlayerRows').innerHTML = leaderData.players.map((p, i) =>
+    '<div class="player-edit-row" id="apr-'+i+'">' +
+    '<div class="row-rank">' + (MEDALS[i] || (i+1)) + '</div>' +
+    '<input class="row-avatar-input" value="' + p.avatar + '" maxlength="2" />' +
+    '<input class="row-input" value="' + p.name + '" placeholder="Name" />' +
+    '<input class="row-input row-game" value="' + p.game + '" placeholder="Game" style="color:#a78bfa" />' +
+    '<input class="row-pts" type="number" value="' + p.pts + '" />' +
+    '<button class="btn-del" onclick="deletePlayer('+i+')">✕</button>' +
+    '</div>'
+  ).join('')
+}
+
+function deletePlayer(i) {
+  leaderData.players.splice(i, 1)
+  renderAdminPlayers()
+}
+
+function addAdminPlayer() {
+  leaderData.players.push({ avatar:'🎭', name:'New Player', game:'Coworker', pts:0 })
+  renderAdminPlayers()
+  // scroll to bottom of player list
+  document.getElementById('adminPlayerRows').lastElementChild.scrollIntoView({ behavior:'smooth' })
+}
+
+function applyChanges() {
+  // Read champion
+  leaderData.champ = {
+    name:   document.getElementById('aChampName').value,
+    avatar: document.getElementById('aChampAvatar').value,
+    game:   document.getElementById('aChampGame').value,
+    wins:   document.getElementById('aChampWins').value,
+    score:  document.getElementById('aChampScore').value
+  }
+
+  // Read all player rows from DOM
+  const rows = document.querySelectorAll('[id^="apr-"]')
+  leaderData.players = []
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input')
+    leaderData.players.push({
+      avatar: inputs[0].value,
+      name:   inputs[1].value,
+      game:   inputs[2].value,
+      pts:    inputs[3].value
+    })
+  })
+
+  // Update the live page
+  renderLeaderboard()
+  closeAdmin()
+  showToast('Leaderboard updated!')
+}
+
+// ── TOAST ───────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast')
+  t.textContent = msg
+  t.classList.add('show')
+  setTimeout(() => t.classList.remove('show'), 2500)
+}
+
+// ── INIT ────────────────────────────────────────────────────
+renderLeaderboard()
+renderGames()
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') { closeModal(); closeAdmin() }
+})
 </script>
 </body>
 </html>

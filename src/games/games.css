@@ -1,6 +1,6 @@
 .game-layout {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a1a3a 100%);
+  background: #080c14;
   display: flex;
   flex-direction: column;
 }
@@ -10,31 +10,33 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 2px solid #FFD700;
+  background: rgba(17, 24, 39, 0.8);
+  border-bottom: 2px solid #00f5d4;
 }
 
 .game-title {
   font-size: 2rem;
-  color: #FFD700;
+  color: #00f5d4;
   text-align: center;
   margin: 0;
   flex-grow: 1;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .btn-exit {
   padding: 10px 16px;
-  background: #E74C3C;
+  background: #7c3aed;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
 }
 
 .btn-exit:hover {
-  background: #C0392B;
+  background: #6d28d9;
   transform: scale(1.05);
 }
 
@@ -58,17 +60,17 @@
 
 .setup-form input {
   padding: 12px;
-  border: 2px solid #FFD700;
-  border-radius: 6px;
+  border: 2px solid #00f5d4;
+  border-radius: 8px;
   font-size: 1rem;
-  background: #2a2a2a;
-  color: white;
+  background: #111827;
+  color: #e8edf5;
 }
 
 .setup-form input:focus {
   outline: none;
-  border-color: #FFE700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  border-color: #00f5d4;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.18);
 }
 
 .host-setup {
@@ -77,8 +79,10 @@
 }
 
 .host-setup h3 {
-  color: #FFD700;
+  color: #00f5d4;
   margin-bottom: 1rem;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .players-input {
@@ -90,17 +94,17 @@
 
 .players-input input {
   padding: 12px;
-  border: 2px solid #FFD700;
-  border-radius: 6px;
+  border: 2px solid #00f5d4;
+  border-radius: 8px;
   font-size: 1rem;
-  background: #2a2a2a;
-  color: white;
+  background: #111827;
+  color: #e8edf5;
 }
 
 .players-input input:focus {
   outline: none;
-  border-color: #FFE700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  border-color: #00f5d4;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.18);
 }
 
 .players-grid {
@@ -111,15 +115,16 @@
 }
 
 .player-card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
+  background: #111827;
+  border: 2px solid #1e2d47;
+  border-radius: 12px;
   padding: 1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.08);
 }
 
 .player-avatar {
@@ -128,7 +133,7 @@
 
 .player-name {
   font-size: 0.9rem;
-  color: #FFD700;
+  color: #e8edf5;
   word-break: break-word;
 }
 
@@ -137,7 +142,7 @@
 .btn-secondary {
   padding: 12px 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -145,15 +150,16 @@
 }
 
 .btn-primary {
-  background: #FFD700;
-  color: #000;
+  background: linear-gradient(135deg, #00f5d4, #7c3aed);
+  color: #080c14;
   width: 100%;
   margin-top: 1rem;
+  font-weight: 700;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #FFE700;
   transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
 }
 
 .btn-primary:disabled {
@@ -162,12 +168,14 @@
 }
 
 .btn-secondary {
-  background: #444;
-  color: white;
+  background: #1e2d47;
+  color: #e8edf5;
+  border: 1px solid #00f5d4;
 }
 
 .btn-secondary:hover {
-  background: #555;
+  background: #151f33;
+  border-color: #00f5d4;
 }
 
 /* Game Container */
@@ -177,40 +185,44 @@
 }
 
 .host-info {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
+  background: #111827;
+  border: 2px solid #1e2d47;
+  border-radius: 12px;
   padding: 2rem;
   margin-bottom: 2rem;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.08);
 }
 
 .host-info p {
   margin: 1rem 0;
   font-size: 1.2rem;
-  color: #fff;
+  color: #e8edf5;
 }
 
 .host-info .answer {
-  color: #27AE60;
+  color: #00f5d4;
   font-weight: bold;
 }
 
 .votes-display {
-  background: #1a1a1a;
+  background: #0f1419;
   padding: 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-top: 1rem;
+  border: 1px solid #1e2d47;
 }
 
 .votes-display h4 {
-  color: #FFD700;
+  color: #00f5d4;
   margin-bottom: 0.5rem;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .vote {
-  color: #AAA;
+  color: #7a8ba8;
   padding: 0.5rem;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #1e2d47;
 }
 
 .vote:last-child {
@@ -228,18 +240,19 @@
 
 .clue-display {
   font-size: 1.5rem;
-  color: #FFD700;
+  color: #00f5d4;
   text-align: center;
   margin: 1rem 0;
-  background: #2a2a2a;
+  background: #111827;
   padding: 1.5rem;
-  border-radius: 8px;
-  border: 2px solid #FFD700;
+  border-radius: 12px;
+  border: 2px solid #00f5d4;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.18);
 }
 
 .timer {
   font-size: 1.3rem;
-  color: #E74C3C;
+  color: #f59e0b;
   font-weight: bold;
 }
 
@@ -252,9 +265,9 @@
 }
 
 .avatar-btn {
-  background: #2a2a2a;
-  border: 3px solid #FFD700;
-  border-radius: 8px;
+  background: #111827;
+  border: 3px solid #1e2d47;
+  border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -263,25 +276,27 @@
   align-items: center;
   gap: 0.5rem;
   opacity: 1;
+  box-shadow: 0 0 10px rgba(0, 245, 212, 0.08);
 }
 
 /* Only highlight on hover if NOT already selected */
 .avatar-btn:not(.selected):hover {
-  border-color: #FFE700;
-  background: #3a3a3a;
+  border-color: #00f5d4;
+  background: #151f33;
   transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
 }
 
 /* Selected state — overrides everything including disabled */
 .avatar-btn.selected,
 .avatar-btn.selected:disabled,
 .avatar-btn.selected:hover {
-  background: #27AE60;
-  border-color: #2ecc71;
+  background: #7c3aed;
+  border-color: #00f5d4;
   transform: scale(1.05);
   opacity: 1;
   cursor: default;
-  box-shadow: 0 0 16px rgba(39, 174, 96, 0.5);
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
 }
 
 /* Non-selected buttons after voting — dim them slightly */
@@ -297,7 +312,7 @@
 
 .avatar-btn .name {
   font-size: 0.85rem;
-  color: #FFD700;
+  color: #e8edf5;
   text-align: center;
 }
 
@@ -325,14 +340,14 @@
 }
 
 .vote-status.sending {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
+  background: rgba(0, 245, 212, 0.15);
+  color: #00f5d4;
   animation: pulse 0.8s ease infinite alternate;
 }
 
 .vote-status.confirmed {
-  background: rgba(46, 204, 113, 0.3);
-  color: #2ecc71;
+  background: rgba(0, 245, 212, 0.3);
+  color: #00f5d4;
 }
 
 @keyframes pulse {
@@ -345,19 +360,17 @@
   text-align: center;
   max-width: 600px;
   padding: 2rem;
-  background: #2a2a2a;
-  border-radius: 8px;
-  border: 2px solid #FFD700;
+  background: #111827;
+  border-radius: 12px;
+  border: 2px solid #1e2d47;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.08);
 }
 
 .reveal-container h2 {
-  color: #FFD700;
+  color: #00f5d4;
   margin-bottom: 1rem;
-}
-
-.big-avatar {
-  font-size: 5rem;
-  margin: 1rem 0;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .big-avatar {
@@ -367,47 +380,53 @@
 
 .clue {
   font-size: 1.1rem;
-  color: #AAA;
+  color: #7a8ba8;
   font-style: italic;
   margin: 1rem 0;
 }
 
 .guessers {
-  background: #1a1a1a;
+  background: #0f1419;
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 1.5rem 0;
+  border: 1px solid #1e2d47;
 }
 
 .guessers h4 {
-  color: #FFD700;
+  color: #00f5d4;
   margin-bottom: 1rem;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .guesser {
-  color: #27AE60;
+  color: #00f5d4;
   padding: 0.5rem;
   font-weight: bold;
 }
 
 .leaderboard {
-  background: #1a1a1a;
+  background: #0f1419;
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 1.5rem 0;
+  border: 1px solid #1e2d47;
 }
 
 .leaderboard h4 {
-  color: #FFD700;
+  color: #00f5d4;
   margin-bottom: 1rem;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .score-row {
   display: flex;
   justify-content: space-between;
   padding: 0.75rem;
-  border-bottom: 1px solid #444;
-  color: #fff;
+  border-bottom: 1px solid #1e2d47;
+  color: #e8edf5;
 }
 
 .score-row:last-child {
@@ -415,7 +434,7 @@
 }
 
 .score {
-  color: #FFD700;
+  color: #f59e0b;
   font-weight: bold;
 }
 
@@ -430,10 +449,10 @@
 
 .statement-input textarea {
   padding: 12px;
-  border: 2px solid #FFD700;
-  border-radius: 6px;
-  background: #2a2a2a;
-  color: white;
+  border: 2px solid #00f5d4;
+  border-radius: 8px;
+  background: #111827;
+  color: #e8edf5;
   font-size: 1rem;
   font-family: inherit;
   min-height: 60px;
@@ -442,8 +461,8 @@
 
 .statement-input textarea:focus {
   outline: none;
-  border-color: #FFE700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  border-color: #00f5d4;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.18);
 }
 
 .statements-display {
@@ -455,45 +474,51 @@
 }
 
 .statement-card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
+  background: #111827;
+  border: 2px solid #1e2d47;
+  border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 1.1rem;
-  color: #fff;
+  color: #e8edf5;
+  box-shadow: 0 0 10px rgba(0, 245, 212, 0.08);
 }
 
 .statement-card:hover {
-  border-color: #FFE700;
+  border-color: #00f5d4;
   transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
 }
 
 .statement-card.selected {
-  background: #27AE60;
-  border-color: #27AE60;
+  background: #7c3aed;
+  border-color: #00f5d4;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
 }
 
 .challenge-display {
-  background: #2a2a2a;
-  border: 3px solid #E74C3C;
-  border-radius: 8px;
+  background: #111827;
+  border: 3px solid #f59e0b;
+  border-radius: 12px;
   padding: 2rem;
   text-align: center;
   max-width: 600px;
   margin: 2rem auto;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
 }
 
 .challenge-display h3 {
-  color: #FFD700;
+  color: #f59e0b;
   margin-bottom: 1rem;
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
 }
 
 .challenge-text {
   font-size: 1.2rem;
-  color: #fff;
+  color: #e8edf5;
   margin: 1rem 0;
 }
 

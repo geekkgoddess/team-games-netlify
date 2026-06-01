@@ -23,10 +23,9 @@ const CHALLENGES = [
   "Do 10 jumping jacks"
 ]
 
-export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
-  const [phase, setPhase] = useState('setup') // setup, enter-statements, guessing, reveal, challenge, results
+export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAvatar, gameCode, onExit, onGameEnd }) {
+  const [phase, setPhase] = useState('waiting')
   const [players, setPlayers] = useState([])
-  const [playerName, setPlayerName] = useState('')
   const [scores, setScores] = useState({})
   const [currentPlayer, setCurrentPlayer] = useState(null)
   const [statements, setStatements] = useState(['', '', ''])
@@ -37,29 +36,56 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
   const [timer, setTimer] = useState(20)
   const [currentChallenge, setCurrentChallenge] = useState(null)
   const [usedChallenges, setUsedChallenges] = useState([])
+  const [roundCount, setRoundCount] = useState(0)
+  const [maxRounds] = useState(5)
+  const [selectedLie, setSelectedLie] = useState(null)
+
+  // Register player when they join (non-host only)
+  useEffect(() => {
+    if (isHost || !playerName) return
+
+    const registerPlayer = async () => {
+      const myPlayer = { name: playerName, avatar: playerAvatar || '🎭' }
+      try {
+        await fetch('/api/sync-game-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId,
+            action: 'addPlayer',
+            state: { newPlayer: myPlayer }
+          })
+        })
+      } catch (e) {
+        console.log('Registering player...')
+      }
+    }
+
+    registerPlayer()
+  }, [gameId, isHost, playerName, playerAvatar])
 
   // Host polling
   useEffect(() => {
-    if (!isHost || phase === 'setup') return
-
+    if (!isHost) return
     const interval = setInterval(async () => {
       try {
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
         const data = await response.json()
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
-      } catch (e) {
-        console.error('Polling error:', e)
-      }
+        if (data.votes) setVotes(data.votes)
+        if (data.phase && data.phase !== phase) setPhase(data.phase)
+        if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
+        if (data.statements) setStatements(data.statements)
+        if (data.lie !== undefined) setLie(data.lie)
+      } catch (e) { console.error('Polling error:', e) }
     }, 500)
-
     return () => clearInterval(interval)
   }, [gameId, isHost, phase])
 
   // Player polling
   useEffect(() => {
     if (isHost) return
-
     const interval = setInterval(async () => {
       try {
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
@@ -68,69 +94,65 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
         if (data.phase) setPhase(data.phase)
         if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
         if (data.statements) setStatements(data.statements)
-        if (data.timer !== undefined) setTimer(data.timer)
         if (data.votes) setVotes(data.votes)
         if (data.lie !== undefined) setLie(data.lie)
         if (data.scores) setScores(data.scores)
-        if (data.currentChallenge) setCurrentChallenge(data.currentChallenge)
-      } catch (e) {
-        console.error('Polling error:', e)
-      }
+        if (data.guessedCorrectly) setGuessedCorrectly(data.guessedCorrectly)
+        if (data.wrongGuessers) setWrongGuessers(data.wrongGuessers)
+      } catch (e) { console.error('Polling error:', e) }
     }, 500)
-
     return () => clearInterval(interval)
   }, [gameId, isHost])
 
   // Timer
   useEffect(() => {
     if (phase !== 'guessing' || timer <= 0) return
-
     const timeout = setTimeout(() => setTimer(timer - 1), 1000)
     return () => clearTimeout(timeout)
   }, [timer, phase])
 
-  const addPlayer = (name) => {
-    if (!name || players.find(p => p.name === name)) return
-    const newPlayers = [...players, { name }]
-    setPlayers(newPlayers)
-    setScores({ ...scores, [name]: 0 })
-  }
-
   const startNextRound = async () => {
-    const nextPlayer = players[Object.keys(scores).filter(p => p !== currentPlayer?.name).length % players.length]
-    
+    if (roundCount >= maxRounds) {
+      setPhase('results')
+      await syncGameState(gameId, { phase: 'results', scores })
+      return
+    }
+
+    const playersWhoHaveGone = Object.keys(scores).length
+    const nextPlayer = players[playersWhoHaveGone % players.length]
+
     setCurrentPlayer(nextPlayer)
     setStatements(['', '', ''])
     setLie(null)
     setVotes({})
+    setGuessedCorrectly([])
+    setWrongGuessers([])
+    setSelectedLie(null)
     setPhase('enter-statements')
+    setRoundCount(roundCount + 1)
 
     await syncGameState(gameId, {
       phase: 'enter-statements',
-      players,
-      scores,
       currentPlayer: nextPlayer,
-      statements: ['', '', '']
+      statements: ['', '', ''],
+      roundCount: roundCount + 1
     })
   }
 
   const submitStatements = async () => {
-    // Randomly choose which statement is the lie
-    const lieIndex = Math.floor(Math.random() * 3)
-    
-    setLie(lieIndex)
+    if (selectedLie === null) return
+
+    setLie(selectedLie)
     setVotes({})
     setTimer(20)
     setPhase('guessing')
 
     await syncGameState(gameId, {
       phase: 'guessing',
-      players,
-      scores,
-      currentPlayer,
       statements,
+      lie: selectedLie,
       timer: 20,
-      lie: lieIndex
+      votes: {}
     })
   }
 
@@ -139,14 +161,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
     setVotes(newVotes)
 
     await syncGameState(gameId, {
-      phase: 'guessing',
-      players,
-      scores,
-      currentPlayer,
-      statements,
-      votes: newVotes,
-      timer,
-      lie
+      votes: newVotes
     })
   }
 
@@ -171,12 +186,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
 
     await syncGameState(gameId, {
       phase: 'reveal',
-      players,
       scores: newScores,
-      currentPlayer,
-      statements,
-      votes,
-      lie,
       guessedCorrectly: correctGuessers,
       wrongGuessers: incorrect
     })
@@ -199,81 +209,59 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
 
     await syncGameState(gameId, {
       phase: 'challenge',
-      players,
-      scores,
       currentChallenge: challenge
     })
   }
 
-  if (!isHost && !playerName && phase === 'setup') {
-    return (
-      <GameLayout title="🤥 2 Truths & A Lie" onExit={onExit}>
-        <div className="setup-form">
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && playerName && setPhase('waiting')}
-          />
-          <button 
-            onClick={() => playerName && setPhase('waiting')}
-            className="btn-primary"
-          >
-            Join Game
-          </button>
-        </div>
-      </GameLayout>
-    )
-  }
-
-  if (isHost && phase === 'setup') {
+  // Setup phase — host adds players
+  if (isHost && phase === 'waiting' && players.length === 0) {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Host" onExit={onExit}>
         <div className="host-setup">
-          <h3>Add Players</h3>
-          <div className="players-input">
-            <input
-              type="text"
-              placeholder="Player name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && playerName) {
-                  addPlayer(playerName)
-                  setPlayerName('')
-                }
-              }}
-            />
-            <button onClick={() => {
-              addPlayer(playerName)
-              setPlayerName('')
-            }} className="btn-secondary">
-              Add
-            </button>
+          <h3>Game Code: {gameCode}</h3>
+          <p style={{ color: '#7a8ba8', marginBottom: '2rem' }}>Players will join automatically when they enter the code.</p>
+          <div style={{ marginTop: '2rem' }}>
+            <h4 style={{ color: '#00f5d4', marginBottom: '1rem' }}>Waiting for players to join...</h4>
           </div>
-
-          <div className="players-grid">
-            {players.map((p) => (
-              <div key={p.name} className="player-card">
-                <div className="player-avatar">🎭</div>
-                <div className="player-name">{p.name}</div>
+          {players.length > 0 && (
+            <>
+              <div className="players-grid">
+                {players.map((p) => (
+                  <div key={p.name} className="player-card">
+                    <div className="player-avatar">{p.avatar || '🎭'}</div>
+                    <div className="player-name">{p.name}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => startNextRound()}
-            className="btn-primary"
-            disabled={players.length < 2}
-          >
-            Start Game
-          </button>
+              <button
+                onClick={() => startNextRound()}
+                className="btn-primary"
+                disabled={players.length < 2}
+              >
+                Start Game
+              </button>
+            </>
+          )}
         </div>
       </GameLayout>
     )
   }
 
+  // Setup phase — show players waiting
+  if (phase === 'waiting') {
+    return (
+      <GameLayout title="🤥 2 Truths & A Lie" onExit={onExit}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '1.2rem', color: '#e8edf5', marginBottom: '1rem' }}>
+            Waiting for other players to join...
+          </p>
+          <p style={{ color: '#7a8ba8' }}>Players: {players.length}</p>
+        </div>
+      </GameLayout>
+    )
+  }
+
+  // Enter statements phase
   if (phase === 'enter-statements') {
     const isCurrentPlayer = playerName === currentPlayer?.name
 
@@ -281,7 +269,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
       return (
         <GameLayout title="🤥 2 Truths & A Lie - Waiting" onExit={onExit}>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '1.2rem', color: '#FFD700' }}>
+            <p style={{ fontSize: '1.2rem', color: '#00f5d4' }}>
               Waiting for {currentPlayer?.name} to enter statements...
             </p>
           </div>
@@ -293,24 +281,59 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
       return (
         <GameLayout title="🤥 2 Truths & A Lie - Enter Statements" onExit={onExit}>
           <div className="statement-input">
-            <p style={{ color: '#FFD700', fontSize: '1.1rem' }}>Enter 2 truths and 1 lie:</p>
+            <p style={{ color: '#00f5d4', fontSize: '1.1rem', marginBottom: '1.5rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+              Enter 2 truths and 1 lie:
+            </p>
             {statements.map((stmt, idx) => (
-              <textarea
-                key={idx}
-                placeholder={`Statement ${idx + 1}`}
-                value={stmt}
-                onChange={(e) => {
-                  const newStmt = [...statements]
-                  newStmt[idx] = e.target.value
-                  setStatements(newStmt)
-                }}
-              />
+              <div key={idx}>
+                <textarea
+                  placeholder={`Statement ${idx + 1}`}
+                  value={stmt}
+                  onChange={(e) => {
+                    const newStmt = [...statements]
+                    newStmt[idx] = e.target.value
+                    setStatements(newStmt)
+                  }}
+                />
+                <div style={{ marginTop: '0.5rem', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setSelectedLie(idx)}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      background: selectedLie === idx ? '#7c3aed' : '#1e2d47',
+                      border: selectedLie === idx ? '2px solid #00f5d4' : '1px solid #1e2d47',
+                      color: '#e8edf5',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      boxShadow: selectedLie === idx ? '0 0 20px rgba(124, 58, 237, 0.3)' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedLie !== idx) {
+                        e.currentTarget.style.background = '#151f33'
+                        e.currentTarget.style.borderColor = '#00f5d4'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedLie !== idx) {
+                        e.currentTarget.style.background = '#1e2d47'
+                        e.currentTarget.style.borderColor = '#1e2d47'
+                      }
+                    }}
+                  >
+                    {selectedLie === idx ? '✓ This is the lie' : 'Mark as lie'}
+                  </button>
+                </div>
+              </div>
             ))}
 
             <button
               onClick={submitStatements}
               className="btn-primary"
-              disabled={statements.some(s => !s)}
+              disabled={statements.some(s => !s) || selectedLie === null}
             >
               Ready to be Guessed
             </button>
@@ -322,7 +345,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Host" onExit={onExit}>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '1.2rem', color: '#FFD700' }}>
+          <p style={{ fontSize: '1.2rem', color: '#00f5d4' }}>
             Waiting for {currentPlayer?.name} to enter statements...
           </p>
         </div>
@@ -330,6 +353,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
     )
   }
 
+  // Guessing phase
   if (phase === 'guessing') {
     const isCurrentPlayer = playerName === currentPlayer?.name
 
@@ -337,7 +361,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
       return (
         <GameLayout title="🤥 2 Truths & A Lie - Guessing" onExit={onExit}>
           <div style={{ textAlign: 'center', maxWidth: '600px' }}>
-            <p style={{ color: '#AAA', marginBottom: '2rem' }}>
+            <p style={{ color: '#7a8ba8', marginBottom: '2rem' }}>
               You're sitting out this round!
             </p>
           </div>
@@ -348,7 +372,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Guessing" onExit={onExit}>
         <div style={{ maxWidth: '600px' }}>
-          <p style={{ color: '#FFD700', textAlign: 'center', fontSize: '1.1rem', marginBottom: '1rem' }}>
+          <p style={{ color: '#00f5d4', textAlign: 'center', fontSize: '1.1rem', marginBottom: '2rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
             Which is the lie? ({timer}s)
           </p>
 
@@ -365,24 +389,31 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
           </div>
 
           {votes[playerName] !== undefined && (
-            <p style={{ color: '#27AE60', textAlign: 'center', fontWeight: 'bold' }}>
+            <p style={{ color: '#00f5d4', textAlign: 'center', fontWeight: 'bold', marginTop: '1rem' }}>
               ✓ Your vote: Statement {votes[playerName] + 1}
             </p>
+          )}
+
+          {isHost && Object.keys(votes).length === players.length - 1 && (
+            <button onClick={revealAnswer} className="btn-primary" style={{ marginTop: '2rem' }}>
+              Reveal Answer
+            </button>
           )}
         </div>
       </GameLayout>
     )
   }
 
+  // Reveal phase
   if (phase === 'reveal') {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - The Lie Was..." onExit={onExit}>
         <div style={{ maxWidth: '600px' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ color: '#E74C3C' }}>
+            <h2 style={{ color: '#f59e0b', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
               The Lie: Statement {lie + 1}
             </h2>
-            <p style={{ fontSize: '1.1rem', color: '#fff', margin: '1rem 0' }}>
+            <p style={{ fontSize: '1.1rem', color: '#e8edf5', margin: '1rem 0' }}>
               "{statements[lie]}"
             </p>
           </div>
@@ -392,58 +423,63 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
               <div
                 key={idx}
                 style={{
-                  background: idx === lie ? '#E74C3C' : '#27AE60',
-                  border: 'none'
+                  background: idx === lie ? '#7c3aed' : '#111827',
+                  border: idx === lie ? '2px solid #f59e0b' : '2px solid #1e2d47',
+                  boxShadow: idx === lie ? '0 0 20px rgba(245, 158, 11, 0.3)' : 'none'
                 }}
                 className="statement-card"
               >
                 {stmt}
-                <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: idx === lie ? '#f59e0b' : '#00f5d4' }}>
                   {idx === lie ? '🤥 LIE' : '✓ TRUTH'}
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: '2rem', padding: '1rem', background: '#2a2a2a', borderRadius: '8px' }}>
-            <h4 style={{ color: '#FFD700', marginBottom: '1rem' }}>Guessed Correctly: {guessedCorrectly.length}</h4>
+          <div style={{ marginTop: '2rem', padding: '1rem', background: '#0f1419', borderRadius: '8px', border: '1px solid #1e2d47' }}>
+            <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+              Guessed Correctly: {guessedCorrectly.length}
+            </h4>
             {guessedCorrectly.map(name => (
-              <p key={name} style={{ color: '#27AE60' }}>🎉 {name} +5</p>
+              <p key={name} style={{ color: '#00f5d4' }}>🎉 {name} +5</p>
             ))}
           </div>
 
           {wrongGuessers.length > 0 && (
-            <div style={{ marginTop: '1rem', padding: '1rem', background: '#2a2a2a', borderRadius: '8px' }}>
-              <h4 style={{ color: '#FFD700', marginBottom: '1rem' }}>Got it Wrong:</h4>
+            <div style={{ marginTop: '1rem', padding: '1rem', background: '#0f1419', borderRadius: '8px', border: '1px solid #1e2d47' }}>
+              <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+                Got it Wrong (Challenge!):
+              </h4>
               {wrongGuessers.map(name => (
-                <p key={name} style={{ color: '#E74C3C' }}>
-                  {name} (Challenge!)
+                <p key={name} style={{ color: '#f59e0b' }}>
+                  {name}
                 </p>
               ))}
             </div>
           )}
 
-          <div style={{ marginTop: '2rem', padding: '1rem', background: '#1a2a3a', borderRadius: '8px' }}>
-            <h4 style={{ color: '#FFD700', marginBottom: '1rem' }}>Scores</h4>
+          <div style={{ marginTop: '2rem', padding: '1rem', background: '#0f1419', borderRadius: '8px', border: '1px solid #1e2d47' }}>
+            <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>Scores</h4>
             {Object.entries(scores)
               .sort(([,a], [,b]) => b - a)
               .map(([name, score]) => (
-                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #444', color: '#fff' }}>
+                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #1e2d47', color: '#e8edf5' }}>
                   <span>{name}</span>
-                  <span style={{ color: '#FFD700' }}>{score}</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{score}</span>
                 </div>
               ))}
           </div>
 
           {isHost && wrongGuessers.length > 0 && (
-            <button onClick={giveChallenge} className="btn-primary">
+            <button onClick={giveChallenge} className="btn-primary" style={{ marginTop: '2rem' }}>
               Give Challenge
             </button>
           )}
 
           {isHost && wrongGuessers.length === 0 && (
-            <button onClick={startNextRound} className="btn-primary">
-              Next Round
+            <button onClick={startNextRound} className="btn-primary" style={{ marginTop: '2rem' }}>
+              {roundCount >= maxRounds ? 'View Results' : 'Next Round'}
             </button>
           )}
         </div>
@@ -451,6 +487,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
     )
   }
 
+  // Challenge phase
   if (phase === 'challenge') {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Challenge!" onExit={onExit}>
@@ -459,8 +496,58 @@ export default function TwoTruthsAndALie({ gameId, isHost, onExit }) {
           <p className="challenge-text">{currentChallenge}</p>
           {isHost && (
             <button onClick={startNextRound} className="btn-primary">
-              Next Round
+              {roundCount >= maxRounds ? 'View Results' : 'Next Round'}
             </button>
+          )}
+        </div>
+      </GameLayout>
+    )
+  }
+
+  // Results phase
+  if (phase === 'results') {
+    const sortedScores = Object.entries(scores).sort(([,a], [,b]) => b - a)
+    const medals = ['🥇', '🥈', '🥉']
+
+    return (
+      <GameLayout title="🤥 2 Truths & A Lie - Final Results!" onExit={onExit}>
+        <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+          <h2 style={{ color: '#00f5d4', marginBottom: '2rem', fontSize: '2.5rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+            Game Over!
+          </h2>
+
+          <div style={{ marginBottom: '2rem' }}>
+            {sortedScores.map(([name, score], idx) => (
+              <div
+                key={name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem',
+                  background: '#111827',
+                  borderRadius: '12px',
+                  marginBottom: '0.75rem',
+                  border: idx === 0 ? '2px solid #f59e0b' : '1px solid #1e2d47',
+                  boxShadow: idx === 0 ? '0 0 20px rgba(245, 158, 11, 0.2)' : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span style={{ fontSize: '2rem' }}>{medals[idx] || '🎭'}</span>
+                  <span style={{ color: '#e8edf5', fontSize: '1.1rem', fontWeight: 600 }}>{name}</span>
+                </div>
+                <span style={{ color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold' }}>{score}</span>
+              </div>
+            ))}
+          </div>
+
+          {isHost && (
+            <button onClick={onGameEnd} className="btn-primary">
+              Return to Menu
+            </button>
+          )}
+          {!isHost && (
+            <p style={{ color: '#7a8ba8' }}>Waiting for host to return to menu...</p>
           )}
         </div>
       </GameLayout>
