@@ -65,7 +65,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
 
   // Host polling
   useEffect(() => {
-    if (!isHost || phase === 'waiting') return
+    if (!isHost) return
 
     const interval = setInterval(async () => {
       try {
