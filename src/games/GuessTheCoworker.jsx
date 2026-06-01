@@ -83,7 +83,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         const data = await response.json()
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
-        if (data.votes) setVotes(data.votes)
+        if (data.votes !== undefined) setVotes(data.votes)
         if (data.phase && data.phase !== phase) setPhase(data.phase)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
@@ -101,7 +101,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.phase) setPhase(data.phase)
         if (data.clues) setClues(data.clues)
         if (data.timer !== undefined) setTimer(data.timer)
-        if (data.votes) setVotes(data.votes)
+        if (data.votes !== undefined) setVotes(data.votes)
         if (data.answer) setAnswer(data.answer)
         if (data.scores) setScores(data.scores)
       } catch (e) { console.error('Polling error:', e) }
