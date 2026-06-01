@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Game Lounge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   CSS VARIABLES — DARK & LIGHT MODE
+   ============================================================ */
+:root {
+  --transition: 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+[data-theme="dark"] {
+  --bg:          #080c14;
+  --bg2:         #0d1220;
+  --surface:     #111827;
+  --surface2:    #1a2235;
+  --border:      #1e2d47;
+  --text:        #e8edf5;
+  --text2:       #7a8ba8;
+  --accent:      #00f5d4;
+  --accent2:     #7c3aed;
+  --accent3:     #f59e0b;
+  --glow:        rgba(0,245,212,0.18);
+  --glow2:       rgba(124,58,237,0.22);
+  --card-hover:  #151f33;
+  --modal-bg:    #0d1220ee;
+  --tag-bg:      rgba(0,245,212,0.1);
+  --tag-color:   #00f5d4;
+  --badge-bg:    rgba(124,58,237,0.15);
+  --badge-color: #a78bfa;
+  --scanline: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,245,212,0.015) 2px,
+    rgba(0,245,212,0.015) 4px
+  );
+}
+
+[data-theme="light"] {
+  --bg:          #f0f4ff;
+  --bg2:         #e4eafc;
+  --surface:     #ffffff;
+  --surface2:    #f7f9ff;
+  --border:      #d0d9f0;
+  --text:        #111827;
+  --text2:       #5a6a8a;
+  --accent:      #0891b2;
+  --accent2:     #7c3aed;
+  --accent3:     #d97706;
+  --glow:        rgba(8,145,178,0.12);
+  --glow2:       rgba(124,58,237,0.12);
+  --card-hover:  #eef2ff;
+  --modal-bg:    #e4eafcee;
+  --tag-bg:      rgba(8,145,178,0.1);
+  --tag-color:   #0891b2;
+  --badge-bg:    rgba(124,58,237,0.1);
+  --badge-color: #7c3aed;
+  --scanline: none;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background var(--transition), color var(--transition);
+  overflow-x: hidden;
+}
+
+/* Scanline overlay (dark mode only) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--scanline);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ambient glow blobs */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  animation: drift 12s ease-in-out infinite alternate;
+}
+.blob-1 { width: 600px; height: 600px; top: -200px; left: -100px; background: var(--glow2); }
+.blob-2 { width: 500px; height: 500px; bottom: -150px; right: -100px; background: var(--glow); animation-delay: -6s; }
+
+@keyframes drift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(40px,30px) scale(1.08); }
+}
+
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  gap: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.logo-text {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.logo-text span { color: var(--accent); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-link {
+  font-size: 14px;
+  color: var(--text2);
+  text-decoration: none;
+  transition: color 0.2s;
+  font-weight: 500;
+  display: none;
+}
+
+@media (min-width: 640px) { .nav-link { display: block; } }
+
+.nav-link:hover { color: var(--accent); }
+
+/* Theme toggle */
+.theme-toggle {
+  position: relative;
+  width: 56px; height: 28px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  transition: transform var(--transition);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+[data-theme="light"] .theme-toggle::after {
+  transform: translateX(28px);
+}
+
+.toggle-icons {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.btn-launch-header {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.btn-launch-header:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  padding: 80px 0 60px;
+  text-align: center;
+  position: relative;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  animation: fade-up 0.6s ease both;
+}
+
+.hero h1 {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+  animation: fade-up 0.6s 0.1s ease both;
+}
+
+.hero h1 .accent { color: var(--accent); }
+.hero h1 .accent2 { color: var(--accent2); }
+
+.hero p {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--text2);
+  max-width: 540px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+  animation: fade-up 0.6s 0.2s ease both;
+  font-weight: 300;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fade-up 0.6s 0.3s ease both;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 28px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 0 30px var(--glow);
+  letter-spacing: -0.3px;
+}
+.btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 28px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  letter-spacing: -0.3px;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding: 40px 0 0;
+  animation: fade-up 0.6s 0.4s ease both;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-number {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -1px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   SECTION HEADINGS
+   ============================================================ */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 16px;
+}
+
+.section-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.section-title span { color: var(--accent); }
+
+.section-sub {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 300;
+}
+
+/* ============================================================
+   LEADERBOARD
+   ============================================================ */
+.leaderboard-section {
+  padding: 20px 0 60px;
+}
+
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .leaderboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Champion card */
+.champion-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.champion-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.champion-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent3);
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.champion-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.champion-avatar {
+  width: 60px; height: 60px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  box-shadow: 0 0 24px var(--glow);
+}
+
+.champion-info h3 {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.champion-info p {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.champion-score {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -1px;
+}
+
+.champion-score span {
+  font-size: 0.9rem;
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+}
+
+/* Rankings list */
+.rankings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.rank-row:last-child { border-bottom: none; }
+.rank-row:hover { background: var(--card-hover); padding-left: 8px; }
+
+.rank-num {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--text2);
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rank-num.gold   { color: #f59e0b; }
+.rank-num.silver { color: #94a3b8; }
+.rank-num.bronze { color: #b45309; }
+
+.rank-avatar {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.rank-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.rank-game {
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--surface2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.rank-pts {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   GAMES GRID
+   ============================================================ */
+.games-section {
+  padding: 0 0 80px;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s, background var(--transition);
+  position: relative;
+  animation: fade-up 0.5s ease both;
+}
+
+.game-card:nth-child(1) { animation-delay: 0s; }
+.game-card:nth-child(2) { animation-delay: 0.07s; }
+.game-card:nth-child(3) { animation-delay: 0.14s; }
+
+.game-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 30px var(--glow);
+  border-color: var(--accent);
+  background: var(--card-hover);
+}
+
+.game-card-thumbnail {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card:nth-child(1) .game-card-thumbnail { background: linear-gradient(135deg, #0d1f3a, #1a3a5c); }
+.game-card:nth-child(2) .game-card-thumbnail { background: linear-gradient(135deg, #1a0d2e, #2d1548); }
+.game-card:nth-child(3) .game-card-thumbnail { background: linear-gradient(135deg, #1a2010, #2d3a18); }
+
+[data-theme="light"] .game-card:nth-child(1) .game-card-thumbnail { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+[data-theme="light"] .game-card:nth-child(2) .game-card-thumbnail { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+[data-theme="light"] .game-card:nth-child(3) .game-card-thumbnail { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+
+.game-card-thumbnail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--surface), transparent 50%);
+}
+
+.game-card-body {
+  padding: 20px;
+}
+
+.game-card-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.tag {
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.tag.purple {
+  background: var(--badge-bg);
+  color: var(--badge-color);
+}
+
+.tag.amber {
+  background: rgba(245,158,11,0.1);
+  color: #f59e0b;
+}
+
+.game-card-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.game-card-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  font-weight: 300;
+  margin-bottom: 16px;
+}
+
+.game-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.game-card-stats {
+  font-size: 12px;
+  color: var(--text2);
+  display: flex;
+  gap: 12px;
+}
+
+.game-card-stats span { display: flex; align-items: center; gap: 4px; }
+
+.btn-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Unbounded', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: -0.3px;
+}
+
+.game-card:hover .btn-card {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: var(--modal-bg);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
+}
+
+.modal-overlay.open .modal {
+  transform: scale(1) translateY(0);
+}
+
+.modal-thumbnail {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  border-radius: 20px 20px 0 0;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.modal-close:hover { background: rgba(255,255,255,0.2); }
+
+.modal-body {
+  padding: 28px;
+}
+
+.modal-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 12px;
+}
+
+.modal-desc {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.7;
+  font-weight: 300;
+  margin-bottom: 24px;
+}
+
+.modal-how-to {
+  background: var(--surface2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.modal-how-to h4 {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.how-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.how-step:last-child { margin-bottom: 0; }
+
+.step-num {
+  width: 22px; height: 22px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.modal-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.modal-stat {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.modal-stat-value {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+.modal-stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-launch {
+  flex: 1;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 0 30px var(--glow);
+  letter-spacing: -0.5px;
+}
+
+.btn-launch:hover { opacity: 0.88; transform: translateY(-2px); }
+
+.btn-dismiss {
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px 20px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-dismiss:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 0;
+  text-align: center;
+}
+
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-logo {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--text2);
+}
+
+.footer-logo span { color: var(--accent); }
+
+.footer-text {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 300;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="wrapper">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <div class="logo-icon">🎮</div>
+        <div class="logo-text">Team Game<br><span>Lounge</span></div>
+      </a>
+      <div class="header-right">
+        <a class="nav-link" href="#games">Games</a>
+        <a class="nav-link" href="#leaderboard">Leaderboard</a>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <div class="toggle-icons"><span>🌙</span><span>☀️</span></div>
+        </button>
+        <a class="btn-launch-header" href="https://team-games-app.netlify.app" target="_blank">
+          Play Now →
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrapper">
+    <div class="hero-eyebrow">⚡ Live Multiplayer · No Download Required</div>
+    <h1>Where Teams<br><span class="accent">Play</span> <span class="accent2">Together</span></h1>
+    <p>Real-time interactive games built for remote and in-person teams. Join with a code, no accounts needed.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://team-games-app.netlify.app" target="_blank">🎮 Launch Game Room</a>
+      <a class="btn-secondary" href="#games">Browse Games ↓</a>
+    </div>
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Games Available</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">20</div>
+        <div class="stat-label">Players Per Session</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Downloads Needed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">∞</div>
+        <div class="stat-label">Good Times</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section class="leaderboard-section" id="leaderboard">
+  <div class="wrapper">
+    <div class="section-header">
+      <div>
+        <div class="section-title">🏆 <span>Champion</span> Board</div>
+        <div class="section-sub">Top performers this week</div>
+      </div>
+    </div>
+    <div class="leaderboard-grid">
+
+      <!-- Champion spotlight -->
+      <div class="champion-card">
+        <div class="champion-label">⭐ Champion of the Week</div>
+        <div class="champion-player">
+          <div class="champion-avatar">🦸</div>
+          <div class="champion-info">
+            <h3>Joanna H.</h3>
+            <p>Guess the Coworker · 5 wins</p>
+          </div>
+        </div>
+        <div class="champion-score">320 <span>pts this week</span></div>
+      </div>
+
+      <!-- Rankings -->
+      <div class="rankings-card">
+        <div class="section-title" style="font-size:0.85rem; margin-bottom:16px;">Top Players</div>
+
+        <div class="rank-row">
+          <div class="rank-num gold">🥇</div>
+          <div class="rank-avatar">🦸</div>
+          <div class="rank-name">Joanna H.</div>
+          <div class="rank-game">Coworker</div>
+          <div class="rank-pts">320</div>
+        </div>
+        <div class="rank-row">
+          <div class="rank-num silver">🥈</div>
+          <div class="rank-avatar">🐱</div>
+          <div class="rank-name">Tori M.</div>
+          <div class="rank-game">2 Truths</div>
+          <div class="rank-pts">280</div>
+        </div>
+        <div class="rank-row">
+          <div class="rank-num bronze">🥉</div>
+          <div class="rank-avatar">🦊</div>
+          <div class="rank-name">Alex R.</div>
+          <div class="rank-game">TAH</div>
+          <div class="rank-pts">245</div>
+        </div>
+        <div class="rank-row">
+          <div class="rank-num">4</div>
+          <div class="rank-avatar">🧙</div>
+          <div class="rank-name">Sam K.</div>
+          <div class="rank-game">Coworker</div>
+          <div class="rank-pts">210</div>
+        </div>
+        <div class="rank-row">
+          <div class="rank-num">5</div>
+          <div class="rank-avatar">🐉</div>
+          <div class="rank-name">Jordan T.</div>
+          <div class="rank-game">2 Truths</div>
+          <div class="rank-pts">185</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- GAMES GRID -->
+<section class="games-section" id="games">
+  <div class="wrapper">
+    <div class="section-header">
+      <div>
+        <div class="section-title">🎮 <span>Games</span> Library</div>
+        <div class="section-sub">Click any game to learn more</div>
+      </div>
+    </div>
+    <div class="games-grid">
+
+      <div class="game-card" onclick="openModal('coworker')">
+        <div class="game-card-thumbnail">👥</div>
+        <div class="game-card-body">
+          <div class="game-card-tags">
+            <span class="tag">Multiplayer</span>
+            <span class="tag purple">Voting</span>
+          </div>
+          <div class="game-card-title">Guess the Coworker</div>
+          <div class="game-card-desc">A mystery clue describes someone on your team. Can you figure out who it is before the timer runs out?</div>
+          <div class="game-card-footer">
+            <div class="game-card-stats">
+              <span>👥 2–20</span>
+              <span>⏱ ~15 min</span>
+            </div>
+            <button class="btn-card">View →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-card" onclick="openModal('truths')">
+        <div class="game-card-thumbnail">🤥</div>
+        <div class="game-card-body">
+          <div class="game-card-tags">
+            <span class="tag">Multiplayer</span>
+            <span class="tag amber">Challenge</span>
+          </div>
+          <div class="game-card-title">2 Truths & A Lie</div>
+          <div class="game-card-desc">Share two truths and one lie about yourself. Teammates vote on which one is the fib — wrong guessers face a fun challenge!</div>
+          <div class="game-card-footer">
+            <div class="game-card-stats">
+              <span>👥 3–20</span>
+              <span>⏱ ~20 min</span>
+            </div>
+            <button class="btn-card">View →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-card" onclick="openModal('tah')">
+        <div class="game-card-thumbnail">🎭</div>
+        <div class="game-card-body">
+          <div class="game-card-tags">
+            <span class="tag purple">Judge's Choice</span>
+            <span class="tag amber">Hilarious</span>
+          </div>
+          <div class="game-card-title">Teams Against Humanity</div>
+          <div class="game-card-desc">Match wild prompts with absurd answers. The host judge picks the funniest — points awarded for maximum chaos.</div>
+          <div class="game-card-footer">
+            <div class="game-card-stats">
+              <span>👥 4–20</span>
+              <span>⏱ ~25 min</span>
+            </div>
+            <button class="btn-card">View →</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrapper">
+    <div class="footer-inner">
+      <div class="footer-logo">Team Game <span>Lounge</span></div>
+      <div class="footer-text">Built for teams that actually like each other 💛</div>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modal">
+    <div class="modal-thumbnail" id="modalThumb">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tags" id="modalTags"></div>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <div class="modal-how-to">
+        <h4>📋 How to Play</h4>
+        <div id="modalSteps"></div>
+      </div>
+      <div class="modal-stats-row" id="modalStats"></div>
+      <div class="modal-actions">
+        <a class="btn-launch" id="modalLaunch" href="https://team-games-app.netlify.app" target="_blank">
+          🚀 Launch Game
+        </a>
+        <button class="btn-dismiss" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAMES = {
+  coworker: {
+    emoji: '👥',
+    bg: 'linear-gradient(135deg, #0d1f3a, #1a3a5c)',
+    bgLight: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+    tags: ['<span class="tag">Multiplayer</span>', '<span class="tag purple">Voting</span>'],
+    title: 'Guess the Coworker',
+    desc: 'A mystery clue is displayed describing someone on your team. Everyone votes simultaneously on who they think it describes — and the answer stays hidden until the votes are in!',
+    steps: [
+      'Host starts the game and shares a 6-character code',
+      'Players join on their own devices — no account needed',
+      'A clue appears describing one team member',
+      'Everyone votes on who they think it is (20 second timer)',
+      'Answer revealed — correct guesses earn 10 points',
+      'Leaderboard shown between rounds · 5 rounds total'
+    ],
+    stats: [
+      { value: '2–20', label: 'Players' },
+      { value: '5', label: 'Rounds' },
+      { value: '10 pts', label: 'Per Correct' }
+    ]
+  },
+  truths: {
+    emoji: '🤥',
+    bg: 'linear-gradient(135deg, #1a0d2e, #2d1548)',
+    bgLight: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+    tags: ['<span class="tag">Multiplayer</span>', '<span class="tag amber">Challenge</span>'],
+    title: '2 Truths & A Lie',
+    desc: 'One player shares two true statements and one lie about themselves. Everyone else votes on which one is the fib. Guess wrong and face a hilarious team challenge!',
+    steps: [
+      'Host starts game — players join with the code',
+      'Active player submits 2 truths and 1 lie',
+      'Teammates vote on which statement is false',
+      'Players who guess wrong must complete a challenge',
+      'Correct guessers earn 5 points each',
+      'Roles rotate — everyone gets a turn'
+    ],
+    stats: [
+      { value: '3–20', label: 'Players' },
+      { value: 'Rotating', label: 'Active Player' },
+      { value: '5 pts', label: 'Per Correct' }
+    ]
+  },
+  tah: {
+    emoji: '🎭',
+    bg: 'linear-gradient(135deg, #1a2010, #2d3a18)',
+    bgLight: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+    tags: ['<span class="tag purple">Judge\'s Choice</span>', '<span class="tag amber">Hilarious</span>'],
+    title: 'Teams Against Humanity',
+    desc: 'A wild prompt appears on screen. Every player submits the most absurd, funny, or creative answer they can think of. The host judge picks their favorite — no right answer, just pure chaos.',
+    steps: [
+      'Host starts game — players join with the code',
+      'A prompt is displayed to all players',
+      'Each player submits their funniest answer',
+      'Host reads all answers aloud (anonymously)',
+      'Host picks the best one — that team gets 10 points',
+      'New prompt — repeat until everyone hurts from laughing'
+    ],
+    stats: [
+      { value: '4–20', label: 'Players' },
+      { value: 'Host', label: 'Judges' },
+      { value: '10 pts', label: 'Per Win' }
+    ]
+  }
+}
+
+function openModal(id) {
+  const g = GAMES[id]
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+
+  document.getElementById('modalThumb').style.background = isDark ? g.bg : g.bgLight
+  document.getElementById('modalThumb').style.fontSize = '80px'
+  document.getElementById('modalThumb').childNodes[0].textContent = g.emoji
+
+  document.getElementById('modalTags').innerHTML = g.tags.join('')
+  document.getElementById('modalTitle').textContent = g.title
+  document.getElementById('modalDesc').textContent = g.desc
+
+  document.getElementById('modalSteps').innerHTML = g.steps.map((s, i) =>
+    `<div class="how-step">
+      <div class="step-num">${i+1}</div>
+      <div>${s}</div>
+    </div>`
+  ).join('')
+
+  document.getElementById('modalStats').innerHTML = g.stats.map(s =>
+    `<div class="modal-stat">
+      <div class="modal-stat-value">${s.value}</div>
+      <div class="modal-stat-label">${s.label}</div>
+    </div>`
+  ).join('')
+
+  document.getElementById('modalOverlay').classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open')
+  document.body.style.overflow = ''
+}
+
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal()
+}
+
+function toggleTheme() {
+  const html = document.documentElement
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal() })
+</script>
+</body>
+</html>
