@@ -192,13 +192,46 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
     startRound()
   }
 
-  // Setup/Waiting phase
+  // Setup phase — host lobby
+  if (isHost && phase === 'waiting') {
+    return (
+      <GameLayout title="🎭 Teams Against Humanity - Host" onExit={onExit}>
+        <div className="host-setup">
+          <h3>Game Code: {gameCode}</h3>
+          <p style={{ color: '#7a8ba8', marginBottom: '2rem' }}>Players will join automatically when they enter the code.</p>
+
+          <div className="players-grid">
+            {players.length === 0 ? (
+              <p style={{ color: '#7a8ba8', gridColumn: '1/-1', textAlign: 'center' }}>Waiting for players to join...</p>
+            ) : (
+              players.map((p) => (
+                <div key={p.name} className="player-card">
+                  <div className="player-avatar">{p.avatar || '🎭'}</div>
+                  <div className="player-name">{p.name}</div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <button
+            onClick={() => startRound()}
+            className="btn-primary"
+            disabled={players.length < 2}
+          >
+            Start Game
+          </button>
+        </div>
+      </GameLayout>
+    )
+  }
+
+  // Setup/Waiting phase — players waiting for host
   if (phase === 'waiting') {
     return (
       <GameLayout title="🎭 Teams Against Humanity" onExit={onExit}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: '1.2rem', color: '#e8edf5', marginBottom: '1rem' }}>
-            Waiting for the host to start the game...
+            Waiting for host to start the game...
           </p>
           <p style={{ color: '#7a8ba8' }}>Players: {players.length}</p>
         </div>

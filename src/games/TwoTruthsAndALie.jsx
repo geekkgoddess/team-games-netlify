@@ -213,47 +213,46 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     })
   }
 
-  // Setup phase — host adds players
-  if (isHost && phase === 'waiting' && players.length === 0) {
+  // Setup phase — host lobby
+  if (isHost && phase === 'waiting') {
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Host" onExit={onExit}>
         <div className="host-setup">
           <h3>Game Code: {gameCode}</h3>
           <p style={{ color: '#7a8ba8', marginBottom: '2rem' }}>Players will join automatically when they enter the code.</p>
-          <div style={{ marginTop: '2rem' }}>
-            <h4 style={{ color: '#00f5d4', marginBottom: '1rem' }}>Waiting for players to join...</h4>
+
+          <div className="players-grid">
+            {players.length === 0 ? (
+              <p style={{ color: '#7a8ba8', gridColumn: '1/-1', textAlign: 'center' }}>Waiting for players to join...</p>
+            ) : (
+              players.map((p) => (
+                <div key={p.name} className="player-card">
+                  <div className="player-avatar">{p.avatar || '🎭'}</div>
+                  <div className="player-name">{p.name}</div>
+                </div>
+              ))
+            )}
           </div>
-          {players.length > 0 && (
-            <>
-              <div className="players-grid">
-                {players.map((p) => (
-                  <div key={p.name} className="player-card">
-                    <div className="player-avatar">{p.avatar || '🎭'}</div>
-                    <div className="player-name">{p.name}</div>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => startNextRound()}
-                className="btn-primary"
-                disabled={players.length < 2}
-              >
-                Start Game
-              </button>
-            </>
-          )}
+
+          <button
+            onClick={() => startNextRound()}
+            className="btn-primary"
+            disabled={players.length < 2}
+          >
+            Start Game
+          </button>
         </div>
       </GameLayout>
     )
   }
 
-  // Setup phase — show players waiting
+  // Setup phase — players waiting for host to start
   if (phase === 'waiting') {
     return (
       <GameLayout title="🤥 2 Truths & A Lie" onExit={onExit}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: '1.2rem', color: '#e8edf5', marginBottom: '1rem' }}>
-            Waiting for other players to join...
+            Waiting for host to start the game...
           </p>
           <p style={{ color: '#7a8ba8' }}>Players: {players.length}</p>
         </div>
