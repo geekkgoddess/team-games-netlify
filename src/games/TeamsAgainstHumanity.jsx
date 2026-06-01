@@ -73,12 +73,12 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         const data = await response.json()
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
-        if (data.submissions) {
+        if (data.submissions !== undefined) {
           setSubmissions(data.submissions)
           setSubmissionsList(Object.entries(data.submissions).map(([key, answer]) => ({ id: key, answer })))
         }
-        if (data.answered) setAnswered(data.answered)
-        if (data.round) setRound(data.round)
+        if (data.answered !== undefined) setAnswered(data.answered)
+        if (data.round !== undefined) setRound(data.round)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -98,13 +98,13 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         if (data.players) setPlayers(data.players)
         if (data.phase) setPhase(data.phase)
         if (data.currentPrompt) setCurrentPrompt(data.currentPrompt)
-        if (data.submissions) {
+        if (data.submissions !== undefined) {
           setSubmissions(data.submissions)
           setSubmissionsList(Object.entries(data.submissions).map(([key, answer]) => ({ id: key, answer })))
         }
-        if (data.answered) setAnswered(data.answered)
+        if (data.answered !== undefined) setAnswered(data.answered)
         if (data.scores) setScores(data.scores)
-        if (data.round) setRound(data.round)
+        if (data.round !== undefined) setRound(data.round)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -144,7 +144,8 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
       currentPrompt: prompt,
       submissions: {},
       answered: [],
-      round: newRound
+      round: newRound,
+      scores
     })
   }
 
@@ -189,7 +190,27 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
       await syncGameState(gameId, { phase: 'results', scores })
       return
     }
-    startRound()
+
+    // Ensure submissions are cleared before starting the next round
+    const prompt = getNextPrompt()
+    const newRound = round + 1
+
+    setCurrentPrompt(prompt)
+    setSubmissions({})
+    setSubmissionsList([])
+    setAnswered([])
+    setRound(newRound)
+    setPhase('playing')
+    setAnswerInput('')
+
+    await syncGameState(gameId, {
+      phase: 'playing',
+      currentPrompt: prompt,
+      submissions: {},
+      answered: [],
+      round: newRound,
+      scores
+    })
   }
 
   // Setup phase — host lobby
