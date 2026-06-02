@@ -62,11 +62,27 @@ exports.handler = async (event) => {
         }
       } else {
         // Regular full state update (host syncing game state)
-        gameStore[gameId] = {
+        // For votes, submissions, answers — merge instead of replace
+        const merged = {
           ...existing,
           ...state,
           lastUpdate: Date.now()
         }
+
+        // Deep-merge votes, submissions, and answers objects
+        if (state.votes !== undefined) {
+          merged.votes = { ...existing.votes, ...state.votes }
+        }
+        if (state.submissions !== undefined) {
+          merged.submissions = { ...existing.submissions, ...state.submissions }
+        }
+        if (state.answered !== undefined && Array.isArray(state.answered)) {
+          // For answered array, merge with existing
+          const existing_answered = existing.answered || []
+          merged.answered = [...new Set([...existing_answered, ...state.answered])]
+        }
+
+        gameStore[gameId] = merged
       }
 
       return {
