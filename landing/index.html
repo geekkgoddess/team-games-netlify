@@ -415,7 +415,7 @@ footer{border-top:1px solid var(--border);padding:32px 0;text-align:center}
 const ADMIN_PW = 'admin1937'  // Change this to your own password!
 
 // ── DATA ────────────────────────────────────────────────────
-let leaderData = {
+const DEFAULT_LEADERBOARD = {
   champ: { name:'Joanna H.', avatar:'🦸', game:'Guess the Coworker', wins:5, score:320 },
   players: [
     { avatar:'🦸', name:'Joanna H.', game:'Coworker', pts:320 },
@@ -425,6 +425,9 @@ let leaderData = {
     { avatar:'🐉', name:'Jordan T.', game:'2 Truths', pts:185 },
   ]
 }
+
+// Load from localStorage or use defaults
+let leaderData = JSON.parse(localStorage.getItem('leaderData')) || DEFAULT_LEADERBOARD
 
 const GAMES_DATA = {
   coworker: {
@@ -606,6 +609,9 @@ function applyChanges() {
       pts:    inputs[3].value
     })
   })
+
+  // Save to localStorage
+  localStorage.setItem('leaderData', JSON.stringify(leaderData))
 
   // Update the live page
   renderLeaderboard()
