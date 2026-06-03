@@ -135,6 +135,10 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       phase: 'enter-statements',
       currentPlayer: nextPlayer,
       statements: ['', '', ''],
+      lie: null,
+      votes: {},
+      guessedCorrectly: [],
+      wrongGuessers: [],
       roundCount: roundCount + 1
     })
   }
