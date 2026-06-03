@@ -377,7 +377,7 @@ footer{border-top:1px solid var(--border);padding:32px 0;text-align:center}
           <h3>⭐ Champion of the Week</h3>
           <div class="a-grid-2">
             <div class="a-field"><label>Name</label><input id="aChampName" type="text" /></div>
-            <div class="a-field"><label>Avatar Emoji</label><input id="aChampAvatar" type="text" maxlength="2" /></div>
+            <div class="a-field"><label>Avatar Emoji</label><input id="aChampAvatar" type="text" maxlength="8" /></div>
             <div class="a-field"><label>Game</label>
               <select id="aChampGame">
                 <option>Guess the Coworker</option>
@@ -436,6 +436,9 @@ let leaderData = (() => {
     return DEFAULT_LEADERBOARD
   }
 })()
+
+// Debug: log what was loaded
+console.log('📊 Leaderboard loaded from localStorage:', leaderData)
 
 const GAMES_DATA = {
   coworker: {
@@ -574,7 +577,7 @@ function renderAdminPlayers() {
   document.getElementById('adminPlayerRows').innerHTML = leaderData.players.map((p, i) =>
     '<div class="player-edit-row" id="apr-'+i+'">' +
     '<div class="row-rank">' + (MEDALS[i] || (i+1)) + '</div>' +
-    '<input class="row-avatar-input" type="text" value="' + p.avatar + '" maxlength="2" />' +
+    '<input class="row-avatar-input" type="text" value="' + p.avatar + '" maxlength="8" />' +
     '<input class="row-input" type="text" value="' + p.name + '" placeholder="Name" />' +
     '<input class="row-input row-game" type="text" value="' + p.game + '" placeholder="Game" style="color:#a78bfa" />' +
     '<input class="row-pts" type="number" value="' + p.pts + '" />' +
