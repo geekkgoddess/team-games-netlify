@@ -103,6 +103,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.guessedCorrectly !== undefined) setGuessedCorrectly(data.guessedCorrectly)
         if (data.wrongGuessers !== undefined) setWrongGuessers(data.wrongGuessers)
+        if (data.roundCount !== undefined) setRoundCount(data.roundCount)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)

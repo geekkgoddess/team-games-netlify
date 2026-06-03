@@ -109,6 +109,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.answer) setAnswer(data.answer)
         if (data.scores) setScores(data.scores)
+        if (data.guessedCorrectly) setGuessedCorrectly(data.guessedCorrectly)
+        if (data.roundCount !== undefined) setRoundCount(data.roundCount)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
@@ -177,7 +179,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       clues: [selectedClue],
       answer: selectedPlayer,
       votes: {},
-      timer: 20
+      timer: 20,
+      roundCount: roundCount + 1
     })
   }
 
