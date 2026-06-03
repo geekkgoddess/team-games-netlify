@@ -1,0 +1,80 @@
+[
+  {
+    "id": "default",
+    "name": "Default (Work From Home)",
+    "prompts": [
+      "What's the most awkward thing to say on a zoom call?",
+      "I just realized my manager is ___.",
+      "The best thing about working from home is ___.",
+      "When the internet goes out, I ___.",
+      "The worst thing on my Teams background is ___.",
+      "I should probably stop ___.",
+      "My coworkers think I ___ all day.",
+      "The best meeting excuse is ___.",
+      "I always forget to ___ before calling someone.",
+      "If I had to describe myself in 3 words: ___.",
+      "The worst part of stand-ups is ___.",
+      "My Slack status should really say ___.",
+      "I've never actually ___ at work.",
+      "The craziest thing that happened on a call was ___.",
+      "When someone unmutes unexpectedly, I ___.",
+      "I spend way too much time ___ at work.",
+      "The most relatable Slack emoji is ___.",
+      "If I were honest, I ___ during meetings.",
+      "The thing I miss most about the office is ___.",
+      "I got caught ___ on camera once."
+    ]
+  },
+  {
+    "id": "office",
+    "name": "Office & Kitchen Vibes",
+    "prompts": [
+      "The kitchen microwave smells like ___.",
+      "Someone always ___ in the office kitchen.",
+      "My coworker's lunch is ___ and it stinks.",
+      "The office fridge is basically a ___.",
+      "The break room would be perfect if it didn't have ___.",
+      "I once walked in on someone ___ in the office.",
+      "The most annoying office tradition is ___.",
+      "Someone left a ___ in the fridge for 3 months.",
+      "The office coffee tastes like ___.",
+      "My coworker heats up ___ in the microwave every day.",
+      "The vending machine stole my money for ___.",
+      "You know someone's having a bad day when they ___.",
+      "The office kitchen floor has probably seen ___.",
+      "My coworker's lunch smells like ___.",
+      "The office water cooler gossip today was ___.",
+      "Someone definitely ___ in the office kitchen last week.",
+      "The break room fridge is like a ___ museum.",
+      "My coworker puts ___ on everything they eat.",
+      "The most disgusting thing in the office fridge is ___.",
+      "Someone's definitely growing a ___ in the microwave."
+    ]
+  },
+  {
+    "id": "quirky",
+    "name": "Quirky & Random",
+    "prompts": [
+      "My superpower is ___.",
+      "If I was a vegetable, I'd be ___.",
+      "My coworker's hidden talent is ___.",
+      "I'd pay money to see my boss ___ on camera.",
+      "If our team was a movie, it would be called ___.",
+      "The most surprising thing I've learned about a coworker is ___.",
+      "If I had to describe my job in one emoji: ___.",
+      "My coworker thinks they're ___ but they're actually ___.",
+      "The weirdest question I've been asked at work is ___.",
+      "If our company was a reality TV show, it would be ___.",
+      "The last thing I'd want my coworkers to know is ___.",
+      "My spirit animal at work is ___.",
+      "The funniest thing to happen in a meeting was ___.",
+      "If I had to pick a coworker to be on Survivor with: ___.",
+      "The most random talent on our team is ___.",
+      "My coworker's autobiography would be called ___.",
+      "I once got in trouble for ___ at work.",
+      "The most awkward team bonding was ___.",
+      "If you replaced our CEO with a ___ nothing would change.",
+      "The weirdest conversation I've had with IT was ___."
+    ]
+  }
+]

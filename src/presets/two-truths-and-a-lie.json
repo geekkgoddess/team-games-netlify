@@ -1,0 +1,71 @@
+[
+  {
+    "id": "default",
+    "name": "Default (Physical Challenges)",
+    "challenges": [
+      "Do 20 pushups",
+      "Sing a song for 30 seconds",
+      "Speak in an accent for 1 round",
+      "Do your best impression of someone on the team",
+      "Read the next 5 messages in a silly voice",
+      "Do a funny dance on camera",
+      "Put a pillow on your head for 2 minutes",
+      "Pretend to be a cooking show host for 1 minute",
+      "Sing happy birthday to someone",
+      "Do a handstand (or try to)",
+      "Make 3 animal sounds",
+      "Juggle 3 items (or pretend to)",
+      "Do a cartwheel",
+      "Speak backwards for 30 seconds",
+      "Do your best superhero pose",
+      "Recite the alphabet backwards",
+      "Do 10 jumping jacks"
+    ]
+  },
+  {
+    "id": "silly",
+    "name": "Silly & Embarrassing",
+    "challenges": [
+      "Do your worst singing performance",
+      "Make funny faces for 1 minute",
+      "Pretend you're a model on a runway",
+      "Do your worst dance moves",
+      "Pretend to be your pet (if you have one)",
+      "Try to spell your name backwards while speaking",
+      "Do an impression of a coworker",
+      "Walk around like you're in slow motion for 1 round",
+      "Speak like a pirate for 1 round",
+      "Pretend to be a news anchor",
+      "Do your worst robot impression",
+      "Pretend to play an invisible instrument",
+      "Act out an extreme emotion for 30 seconds",
+      "Try to whistle a song backwards",
+      "Do your worst superhero landing",
+      "Speak in rhymes for 1 round",
+      "Pretend to be a fashion critic about your outfit"
+    ]
+  },
+  {
+    "id": "minimal",
+    "name": "Light & Minimal",
+    "challenges": [
+      "Laugh like your favorite character",
+      "Describe your job in 3 words",
+      "Name 5 foods you'd never eat",
+      "Say something backwards",
+      "Do your best evil laugh",
+      "Make your best funny sound",
+      "Describe your morning in 10 seconds",
+      "What's one thing in your room right now?",
+      "Do your worst impression of someone famous",
+      "Say 'red leather, yellow leather' 5 times fast",
+      "What would you do with a million dollars?",
+      "Describe your career change fantasy",
+      "Make the silliest face possible",
+      "Do your best accent",
+      "What's something you'd never tell your boss?",
+      "Make 3 different laugh sounds",
+      "Describe your worst job ever"
+    ]
+  }
+]

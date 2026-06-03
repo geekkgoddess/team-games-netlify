@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
+import presetData from '../presets/two-truths-and-a-lie.json'
 import './games.css'
 
-const CHALLENGES = [
+const DEFAULT_CHALLENGES = [
   "Do 20 pushups",
   "Sing a song for 30 seconds",
   "Speak in an accent for 1 round",
@@ -39,6 +40,8 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   const [roundCount, setRoundCount] = useState(0)
   const [maxRounds] = useState(5)
   const [selectedLie, setSelectedLie] = useState(null)
+  const [availableChallenges, setAvailableChallenges] = useState(DEFAULT_CHALLENGES)
+  const [questionPreset, setQuestionPreset] = useState('default')
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -78,6 +81,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
         if (data.statements) setStatements(data.statements)
         if (data.lie !== undefined) setLie(data.lie)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
@@ -99,6 +103,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.guessedCorrectly !== undefined) setGuessedCorrectly(data.guessedCorrectly)
         if (data.wrongGuessers !== undefined) setWrongGuessers(data.wrongGuessers)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
@@ -110,6 +115,16 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     const timeout = setTimeout(() => setTimer(timer - 1), 1000)
     return () => clearTimeout(timeout)
   }, [timer, phase])
+
+  // Load challenges from preset
+  useEffect(() => {
+    const preset = presetData.find(p => p.id === questionPreset)
+    if (preset?.challenges) {
+      setAvailableChallenges(preset.challenges)
+    } else {
+      setAvailableChallenges(DEFAULT_CHALLENGES)
+    }
+  }, [questionPreset])
 
   const startNextRound = async () => {
     if (roundCount >= maxRounds) {
@@ -197,15 +212,15 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   }
 
   const giveChallenge = async () => {
-    const availableChallenges = CHALLENGES.filter((_, i) => !usedChallenges.includes(i))
-    if (availableChallenges.length === 0) {
+    const availableChallengesPool = availableChallenges.filter((_, i) => !usedChallenges.includes(i))
+    if (availableChallengesPool.length === 0) {
       setUsedChallenges([])
-      availableChallenges.push(...CHALLENGES)
+      availableChallengesPool.push(...availableChallenges)
     }
 
-    const randomIdx = Math.floor(Math.random() * availableChallenges.length)
-    const challenge = availableChallenges[randomIdx]
-    const newUsed = [...usedChallenges, CHALLENGES.indexOf(challenge)]
+    const randomIdx = Math.floor(Math.random() * availableChallengesPool.length)
+    const challenge = availableChallengesPool[randomIdx]
+    const newUsed = [...usedChallenges, availableChallenges.indexOf(challenge)]
 
     setUsedChallenges(newUsed)
     setCurrentChallenge(challenge)

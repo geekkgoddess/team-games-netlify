@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react'
 import '../styles/HostLobby.css'
 
+const GAME_PRESETS = {
+  'guess-coworker': [
+    { id: 'default', name: 'Default (Remote Work)' },
+    { id: 'office', name: 'Office Vibes' },
+    { id: 'quirky', name: 'Quirky & Funny' }
+  ],
+  '2-truths': [
+    { id: 'default', name: 'Default (Physical Challenges)' },
+    { id: 'silly', name: 'Silly & Embarrassing' },
+    { id: 'minimal', name: 'Light & Minimal' }
+  ],
+  'tah': [
+    { id: 'default', name: 'Default (Work From Home)' },
+    { id: 'office', name: 'Office & Kitchen Vibes' },
+    { id: 'quirky', name: 'Quirky & Random' }
+  ]
+}
+
 export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
   const [copied, setCopied] = useState(false)
   const [players, setPlayers] = useState([])
+  const [selectedPreset, setSelectedPreset] = useState('default')
 
   // Save game info to server so players can look it up when they enter the code
   useEffect(() => {
@@ -18,7 +37,8 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
               gameName,
               phase: 'waiting',
               players: [],
-              scores: {}
+              scores: {},
+              questionPreset: selectedPreset
             },
             timestamp: Date.now()
           })
@@ -28,7 +48,7 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
       }
     }
     registerGame()
-  }, [gameCode, gameName])
+  }, [gameCode, gameName, selectedPreset])
 
   // Poll for players joining
   useEffect(() => {
@@ -76,6 +96,21 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
           <p>Players go to:</p>
           <div className="url-display">{window.location.origin}</div>
           <p>→ Click <strong>Player</strong> → Enter code <strong>{gameCode}</strong></p>
+        </div>
+
+        <div className="question-preset">
+          <label>Question Set:</label>
+          <select
+            value={selectedPreset}
+            onChange={(e) => setSelectedPreset(e.target.value)}
+            className="preset-select"
+          >
+            {GAME_PRESETS[gameName]?.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="players-waiting">

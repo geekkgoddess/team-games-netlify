@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
+import presetData from '../presets/teams-against-humanity.json'
 import './games.css'
 
-const PROMPTS = [
+const DEFAULT_PROMPTS = [
   "What's the most awkward thing to say on a zoom call?",
   "I just realized my manager is ___.",
   "The best thing about working from home is ___.",
@@ -38,6 +39,8 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
   const [answerInput, setAnswerInput] = useState('')
   const [submissionsList, setSubmissionsList] = useState([])
   const [maxRounds] = useState(5)
+  const [availablePrompts, setAvailablePrompts] = useState(DEFAULT_PROMPTS)
+  const [questionPreset, setQuestionPreset] = useState('default')
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -79,6 +82,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         }
         if (data.answered !== undefined) setAnswered(data.answered)
         if (data.round !== undefined) setRound(data.round)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -105,6 +109,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         if (data.answered !== undefined) setAnswered(data.answered)
         if (data.scores) setScores(data.scores)
         if (data.round !== undefined) setRound(data.round)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) {
         console.error('Polling error:', e)
       }
@@ -113,16 +118,25 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
     return () => clearInterval(interval)
   }, [gameId, isHost])
 
+  useEffect(() => {
+    const preset = presetData.find(p => p.id === questionPreset)
+    if (preset?.prompts) {
+      setAvailablePrompts(preset.prompts)
+    } else {
+      setAvailablePrompts(DEFAULT_PROMPTS)
+    }
+  }, [questionPreset])
+
   const getNextPrompt = () => {
-    const availablePrompts = PROMPTS.filter((_, i) => !usedPrompts.includes(i))
-    if (availablePrompts.length === 0) {
+    const availablePromptsPool = availablePrompts.filter((_, i) => !usedPrompts.includes(i))
+    if (availablePromptsPool.length === 0) {
       setUsedPrompts([])
-      availablePrompts.push(...PROMPTS)
+      availablePromptsPool.push(...availablePrompts)
     }
 
-    const randomIdx = Math.floor(Math.random() * availablePrompts.length)
-    const prompt = availablePrompts[randomIdx]
-    const newUsed = [...usedPrompts, PROMPTS.indexOf(prompt)]
+    const randomIdx = Math.floor(Math.random() * availablePromptsPool.length)
+    const prompt = availablePromptsPool[randomIdx]
+    const newUsed = [...usedPrompts, availablePrompts.indexOf(prompt)]
     setUsedPrompts(newUsed)
     return prompt
   }

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
+import presetData from '../presets/guess-the-coworker.json'
 import './games.css'
 
-const CLUES = [
+// Fallback clues if preset loading fails
+const DEFAULT_CLUES = [
   "always early to meetings",
   "coffee junkie",
   "quiet but deadly",
@@ -47,6 +49,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [pendingVote, setPendingVote] = useState(null)
   const [voteSending, setVoteSending] = useState(false)
   const [voteConfirmed, setVoteConfirmed] = useState(false)
+  const [availableClues, setAvailableClues] = useState(DEFAULT_CLUES)
+  const [questionPreset, setQuestionPreset] = useState('default')
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -85,6 +89,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.phase && data.phase !== phase) setPhase(data.phase)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
@@ -104,10 +109,21 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.answer) setAnswer(data.answer)
         if (data.scores) setScores(data.scores)
+        if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
   }, [gameId, isHost])
+
+  // Load available clues from preset
+  useEffect(() => {
+    const preset = presetData.find(p => p.id === questionPreset)
+    if (preset?.clues) {
+      setAvailableClues(preset.clues)
+    } else {
+      setAvailableClues(DEFAULT_CLUES)
+    }
+  }, [questionPreset])
 
   // Voting timer
   useEffect(() => {
@@ -139,14 +155,14 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }, [leaderboardPauseTimer, phase])
 
   const startRound = async () => {
-    const availableClues = CLUES.filter((_, i) => !usedClues.includes(i))
-    const pool = availableClues.length === 0 ? CLUES : availableClues
+    const availableCluesPool = availableClues.filter((_, i) => !usedClues.includes(i))
+    const pool = availableCluesPool.length === 0 ? availableClues : availableCluesPool
 
     const randomIdx = Math.floor(Math.random() * pool.length)
     const selectedClue = pool[randomIdx]
     const selectedPlayer = players[Math.floor(Math.random() * players.length)]
 
-    setUsedClues([...usedClues, CLUES.indexOf(selectedClue)])
+    setUsedClues([...usedClues, availableClues.indexOf(selectedClue)])
     setAnswer(selectedPlayer)
     setClues([selectedClue])
     setVotes({})

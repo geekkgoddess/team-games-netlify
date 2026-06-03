@@ -1,0 +1,80 @@
+[
+  {
+    "id": "default",
+    "name": "Default (Remote Work)",
+    "clues": [
+      "always early to meetings",
+      "coffee junkie",
+      "quiet but deadly",
+      "forever on mute",
+      "camera always off",
+      "types in all caps",
+      "loves the off mute button",
+      "says 'thank you' 100 times",
+      "uses too many emojis",
+      "forgets to unmute",
+      "always has a cat on camera",
+      "talks over everyone",
+      "loves the whiteboard",
+      "forgot to turn off share screen",
+      "background always changes",
+      "favorite snack is instant ramen",
+      "claims 'you're on mute'",
+      "always asks 'can everyone hear me'",
+      "professional background",
+      "chaotic background"
+    ]
+  },
+  {
+    "id": "office",
+    "name": "Office Vibes",
+    "clues": [
+      "always at the coffee machine",
+      "sneaks snacks from the pantry",
+      "leaves early on Fridays",
+      "plays music too loud",
+      "takes the longest lunches",
+      "microwaves fish at lunch",
+      "blocks the printer",
+      "hogs the standing desk",
+      "always on personal calls",
+      "sends emails instead of talking",
+      "first to leave when it rains",
+      "never refills the coffee",
+      "parks in your spot",
+      "leaves desk plants alive",
+      "arrives after 10am",
+      "claims they work best from home",
+      "reorganizes the kitchen",
+      "owns the whiteboard",
+      "decorated their cube aggressively",
+      "brought their dog to work"
+    ]
+  },
+  {
+    "id": "quirky",
+    "name": "Quirky & Funny",
+    "clues": [
+      "speaks only in memes",
+      "says 'literally' literally",
+      "types in lowercase only",
+      "adds unnecessary punctuation!!!",
+      "uses 🔥 in every message",
+      "speaks in all questions?",
+      "types like this: hI tHeRe",
+      "uses voice-to-text, always funny",
+      "replies with just emoji",
+      "ends everything with haha",
+      "takes 10 minutes to type 2 words",
+      "sends voice notes instead of typing",
+      "always forgets to hit send",
+      "writes novels in slack",
+      "reads messages 3 times before replying",
+      "calls people by wrong names",
+      "types and deletes 5 times",
+      "their typing indicator never stops",
+      "reads your mind",
+      "somehow always right"
+    ]
+  }
+]
