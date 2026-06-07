@@ -42,6 +42,8 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   const [selectedLie, setSelectedLie] = useState(null)
   const [availableChallenges, setAvailableChallenges] = useState(DEFAULT_CHALLENGES)
   const [questionPreset, setQuestionPreset] = useState('default')
+  const [challengeTimer, setChallengeTimer] = useState(0)
+  const [playersWhoHaveBeenActive, setPlayersWhoHaveBeenActive] = useState([])
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.statements) setStatements(data.statements)
         if (data.lie !== undefined) setLie(data.lie)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
+        if (data.playersWhoHaveBeenActive) setPlayersWhoHaveBeenActive(data.playersWhoHaveBeenActive)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
@@ -105,17 +108,49 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.wrongGuessers !== undefined) setWrongGuessers(data.wrongGuessers)
         if (data.roundCount !== undefined) setRoundCount(data.roundCount)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
+        if (data.timer !== undefined) setTimer(data.timer)
+        if (data.currentChallenge) setCurrentChallenge(data.currentChallenge)
+        if (data.challengeTimer !== undefined) setChallengeTimer(data.challengeTimer)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
   }, [gameId, isHost])
 
-  // Timer
+  // Timer countdown and sync (host only)
   useEffect(() => {
-    if (phase !== 'guessing' || timer <= 0) return
-    const timeout = setTimeout(() => setTimer(timer - 1), 1000)
+    if (phase !== 'guessing' || !isHost || timer <= 0) return
+    const timeout = setTimeout(async () => {
+      const newTimer = timer - 1
+      setTimer(newTimer)
+      await syncGameState(gameId, {
+        phase: 'guessing',
+        currentPlayer,
+        statements,
+        lie,
+        timer: newTimer,
+        votes
+      })
+    }, 1000)
     return () => clearTimeout(timeout)
-  }, [timer, phase])
+  }, [timer, phase, isHost])
+
+  // Challenge timer countdown and auto-advance
+  useEffect(() => {
+    if (phase !== 'challenge' || !isHost || challengeTimer <= 0) return
+    const timeout = setTimeout(async () => {
+      const newChallengeTimer = challengeTimer - 1
+      setChallengeTimer(newChallengeTimer)
+      await syncGameState(gameId, { phase: 'challenge', currentChallenge, challengeTimer: newChallengeTimer })
+    }, 1000)
+    return () => clearTimeout(timeout)
+  }, [challengeTimer, phase, isHost])
+
+  // Auto-advance from challenge after timer ends
+  useEffect(() => {
+    if (phase === 'challenge' && isHost && challengeTimer === 0) {
+      startNextRound()
+    }
+  }, [challengeTimer, phase, isHost])
 
   // Load challenges from preset
   useEffect(() => {
@@ -134,8 +169,22 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       return
     }
 
-    const playersWhoHaveGone = Object.keys(scores).length
-    const nextPlayer = players[playersWhoHaveGone % players.length]
+    // Pick next active player (random, avoiding those who've already been active)
+    const playersAvailable = players.filter((p, idx) => !playersWhoHaveBeenActive.includes(idx))
+    let nextPlayerIdx
+
+    if (playersAvailable.length === 0) {
+      // All players have been active, reset and start over
+      nextPlayerIdx = Math.floor(Math.random() * players.length)
+      setPlayersWhoHaveBeenActive([nextPlayerIdx])
+    } else {
+      // Pick random from available players
+      const randomIdx = Math.floor(Math.random() * playersAvailable.length)
+      nextPlayerIdx = players.findIndex(p => p.name === playersAvailable[randomIdx].name)
+      setPlayersWhoHaveBeenActive([...playersWhoHaveBeenActive, nextPlayerIdx])
+    }
+
+    const nextPlayer = players[nextPlayerIdx]
 
     setCurrentPlayer(nextPlayer)
     setStatements(['', '', ''])
@@ -146,6 +195,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     setSelectedLie(null)
     setPhase('enter-statements')
     setRoundCount(roundCount + 1)
+    setChallengeTimer(0)
 
     await syncGameState(gameId, {
       phase: 'enter-statements',
@@ -155,7 +205,8 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       votes: {},
       guessedCorrectly: [],
       wrongGuessers: [],
-      roundCount: roundCount + 1
+      roundCount: roundCount + 1,
+      playersWhoHaveBeenActive: playersWhoHaveBeenActive.includes(nextPlayerIdx) ? playersWhoHaveBeenActive : [...playersWhoHaveBeenActive, nextPlayerIdx]
     })
   }
 
@@ -180,9 +231,18 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     const newVotes = { ...votes, [playerName]: guessIndex }
     setVotes(newVotes)
 
-    await syncGameState(gameId, {
-      votes: newVotes
-    })
+    try {
+      await syncGameState(gameId, {
+        phase: 'guessing',
+        currentPlayer,
+        statements,
+        lie,
+        timer,
+        votes: newVotes
+      })
+    } catch (e) {
+      console.error('Failed to submit guess:', e)
+    }
   }
 
   const revealAnswer = async () => {
@@ -214,22 +274,27 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
 
   const giveChallenge = async () => {
     const availableChallengesPool = availableChallenges.filter((_, i) => !usedChallenges.includes(i))
+    let updatedPool = availableChallengesPool
+
     if (availableChallengesPool.length === 0) {
       setUsedChallenges([])
-      availableChallengesPool.push(...availableChallenges)
+      updatedPool = availableChallenges
     }
 
-    const randomIdx = Math.floor(Math.random() * availableChallengesPool.length)
-    const challenge = availableChallengesPool[randomIdx]
-    const newUsed = [...usedChallenges, availableChallenges.indexOf(challenge)]
+    const randomIdx = Math.floor(Math.random() * updatedPool.length)
+    const challenge = updatedPool[randomIdx]
+    const newUsed = availableChallengesPool.length === 0 ? [availableChallenges.indexOf(challenge)] : [...usedChallenges, availableChallenges.indexOf(challenge)]
 
     setUsedChallenges(newUsed)
     setCurrentChallenge(challenge)
     setPhase('challenge')
+    setChallengeTimer(10) // 10 second timer for challenge
 
     await syncGameState(gameId, {
       phase: 'challenge',
-      currentChallenge: challenge
+      currentChallenge: challenge,
+      challengeTimer: 10,
+      wrongGuessers
     })
   }
 
@@ -363,9 +428,34 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
 
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Host" onExit={onExit}>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '1.2rem', color: '#00f5d4' }}>
-            Waiting for {currentPlayer?.name} to enter statements...
+        <div style={{ maxWidth: '600px' }}>
+          <p style={{ fontSize: '1.2rem', color: '#00f5d4', textAlign: 'center', marginBottom: '2rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+            {currentPlayer?.name} is entering statements...
+          </p>
+
+          <div style={{ background: '#111827', borderRadius: '12px', padding: '1.5rem', border: '1px solid #1e2d47' }}>
+            {statements.map((stmt, idx) => (
+              <div key={idx} style={{ marginBottom: '1rem' }}>
+                <p style={{ color: '#7a8ba8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Statement {idx + 1}:</p>
+                <div style={{
+                  background: '#0f1419',
+                  border: '1px solid #1e2d47',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  color: stmt ? '#e8edf5' : '#5a6a8a',
+                  minHeight: '60px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontStyle: stmt ? 'normal' : 'italic'
+                }}>
+                  {stmt || '(waiting for input...)'}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ color: '#7a8ba8', textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem' }}>
+            ⏳ Waiting for {currentPlayer?.name} to select which is the lie and click "Ready to be Guessed"
           </p>
         </div>
       </GameLayout>
@@ -401,22 +491,49 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
                 key={idx}
                 onClick={() => submitGuess(idx)}
                 className={`statement-card ${votes[playerName] === idx ? 'selected' : ''}`}
+                style={{ cursor: votes[playerName] !== undefined && votes[playerName] !== idx ? 'pointer' : 'pointer' }}
               >
                 {stmt}
               </div>
             ))}
           </div>
 
-          {votes[playerName] !== undefined && (
-            <p style={{ color: '#00f5d4', textAlign: 'center', fontWeight: 'bold', marginTop: '1rem' }}>
-              ✓ Your vote: Statement {votes[playerName] + 1}
+          {votes[playerName] !== undefined ? (
+            <div style={{ background: '#0f1419', border: '2px solid #00f5d4', borderRadius: '8px', padding: '1rem', marginTop: '1.5rem', textAlign: 'center' }}>
+              <p style={{ color: '#00f5d4', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                ✓ Vote Recorded
+              </p>
+              <p style={{ color: '#e8edf5' }}>
+                Statement {votes[playerName] + 1}
+              </p>
+              <p style={{ color: '#7a8ba8', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                (tap another to change)
+              </p>
+            </div>
+          ) : (
+            <p style={{ color: '#7a8ba8', textAlign: 'center', marginTop: '1rem' }}>
+              Click a statement to vote
             </p>
           )}
 
-          {isHost && Object.keys(votes).length === players.length - 1 && (
-            <button onClick={revealAnswer} className="btn-primary" style={{ marginTop: '2rem' }}>
-              Reveal Answer
-            </button>
+          {isHost && (
+            <div style={{ marginTop: '2rem', padding: '1rem', background: '#0f1419', borderRadius: '8px', border: '1px solid #1e2d47', textAlign: 'center' }}>
+              <p style={{ color: '#7a8ba8', marginBottom: '0.5rem' }}>
+                Votes: {Object.keys(votes).length} / {players.length - 1}
+              </p>
+              {Object.keys(votes).length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {Object.entries(votes).map(([name]) => (
+                    <p key={name} style={{ color: '#00f5d4', fontSize: '0.9rem' }}>✓ {name} voted</p>
+                  ))}
+                </div>
+              )}
+              {(timer === 0 || Object.keys(votes).length === players.length - 1) && (
+                <button onClick={revealAnswer} className="btn-primary" style={{ marginTop: '1rem', width: '100%' }}>
+                  Reveal Answer
+                </button>
+              )}
+            </div>
           )}
         </div>
       </GameLayout>
@@ -508,16 +625,37 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
 
   // Challenge phase
   if (phase === 'challenge') {
+    const isChallenged = wrongGuessers.includes(playerName)
+
     return (
       <GameLayout title="🤥 2 Truths & A Lie - Challenge!" onExit={onExit}>
         <div className="challenge-display">
-          <h3>🎯 Your Challenge:</h3>
-          <p className="challenge-text">{currentChallenge}</p>
-          {isHost && (
-            <button onClick={startNextRound} className="btn-primary">
-              {roundCount >= maxRounds ? 'View Results' : 'Next Round'}
-            </button>
-          )}
+          <div style={{ maxWidth: '600px' }}>
+            {isChallenged ? (
+              <div>
+                <h3 style={{ color: '#f59e0b', marginBottom: '1rem', fontSize: '1.5rem' }}>🎯 YOUR Challenge:</h3>
+                <p className="challenge-text" style={{ background: '#0f1419', border: '2px solid #f59e0b', borderRadius: '8px', padding: '1.5rem', color: '#e8edf5', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+                  {currentChallenge}
+                </p>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <h3 style={{ color: '#00f5d4', marginBottom: '1rem' }}>Challenge Time!</h3>
+                <div style={{ background: '#0f1419', borderRadius: '8px', padding: '1.5rem', border: '1px solid #1e2d47', marginBottom: '1.5rem' }}>
+                  {wrongGuessers.map(name => (
+                    <p key={name} style={{ color: '#f59e0b', fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                      {name}
+                    </p>
+                  ))}
+                  <p style={{ color: '#7a8ba8', fontSize: '0.9rem', marginTop: '1rem' }}>are completing their challenge...</p>
+                </div>
+              </div>
+            )}
+
+            <div style={{ textAlign: 'center', color: '#7a8ba8', fontSize: '0.9rem' }}>
+              Next round in {challengeTimer}s...
+            </div>
+          </div>
         </div>
       </GameLayout>
     )
