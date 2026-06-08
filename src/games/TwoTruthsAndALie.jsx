@@ -100,7 +100,8 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         if (data.players) setPlayers(data.players)
         if (data.phase) setPhase(data.phase)
         if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
-        if (data.statements) setStatements(data.statements)
+        // Don't overwrite statements while player is actively typing them in
+        if (data.statements && phase !== 'enter-statements') setStatements(data.statements)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.lie !== undefined) setLie(data.lie)
         if (data.scores) setScores(data.scores)
@@ -114,7 +115,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
-  }, [gameId, isHost])
+  }, [gameId, isHost, phase])
 
   // Timer countdown and sync (host only)
   useEffect(() => {
