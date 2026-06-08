@@ -30,6 +30,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   const [scores, setScores] = useState({})
   const [currentPlayer, setCurrentPlayer] = useState(null)
   const [statements, setStatements] = useState(['', '', ''])
+  const [localStatements, setLocalStatements] = useState(['', '', '']) // Local input state, independent of polling
   const [lie, setLie] = useState(null)
   const [votes, setVotes] = useState({})
   const [guessedCorrectly, setGuessedCorrectly] = useState([])
@@ -98,9 +99,10 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
         const data = await response.json()
         if (data.players) setPlayers(data.players)
-        if (data.phase) setPhase(data.phase)
-        if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
-        // Don't overwrite statements while player is actively typing them in
+        // Don't update phase, currentPlayer, or statements while entering statements
+        // This prevents polling from interfering with the player's input
+        if (data.phase && data.phase !== 'enter-statements') setPhase(data.phase)
+        if (data.currentPlayer && phase !== 'enter-statements') setCurrentPlayer(data.currentPlayer)
         if (data.statements && phase !== 'enter-statements') setStatements(data.statements)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.lie !== undefined) setLie(data.lie)
@@ -163,6 +165,14 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     }
   }, [questionPreset])
 
+  // Reset local statements when entering enter-statements phase
+  useEffect(() => {
+    if (phase === 'enter-statements') {
+      setLocalStatements(['', '', ''])
+      setSelectedLie(null)
+    }
+  }, [phase])
+
   const startNextRound = async () => {
     if (roundCount >= maxRounds) {
       setPhase('results')
@@ -214,6 +224,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   const submitStatements = async () => {
     if (selectedLie === null) return
 
+    setStatements(localStatements) // Set synced statements to local input
     setLie(selectedLie)
     setVotes({})
     setTimer(20)
@@ -221,7 +232,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
 
     await syncGameState(gameId, {
       phase: 'guessing',
-      statements,
+      statements: localStatements,
       lie: selectedLie,
       timer: 20,
       votes: {}
@@ -369,15 +380,15 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
             <p style={{ color: '#00f5d4', fontSize: '1.1rem', marginBottom: '1.5rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
               Enter 2 truths and 1 lie:
             </p>
-            {statements.map((stmt, idx) => (
+            {localStatements.map((stmt, idx) => (
               <div key={idx}>
                 <textarea
                   placeholder={`Statement ${idx + 1}`}
                   value={stmt}
                   onChange={(e) => {
-                    const newStmt = [...statements]
+                    const newStmt = [...localStatements]
                     newStmt[idx] = e.target.value
-                    setStatements(newStmt)
+                    setLocalStatements(newStmt)
                   }}
                 />
                 <div style={{ marginTop: '0.5rem', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
@@ -418,7 +429,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
             <button
               onClick={submitStatements}
               className="btn-primary"
-              disabled={statements.some(s => !s) || selectedLie === null}
+              disabled={localStatements.some(s => !s) || selectedLie === null}
             >
               Ready to be Guessed
             </button>
