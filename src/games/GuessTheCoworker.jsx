@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/guess-the-coworker.json'
+import teamRosterData from '../data/team-roster.json'
 import './games.css'
 
 // Fallback clues if preset loading fails
@@ -51,6 +52,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [voteConfirmed, setVoteConfirmed] = useState(false)
   const [availableClues, setAvailableClues] = useState(DEFAULT_CLUES)
   const [questionPreset, setQuestionPreset] = useState('default')
+  const [teamRoster, setTeamRoster] = useState([])
+  const [usedTeamMemberIndices, setUsedTeamMemberIndices] = useState([])
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -117,6 +120,14 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     return () => clearInterval(interval)
   }, [gameId, isHost])
 
+  // Load team roster on mount
+  useEffect(() => {
+    if (teamRosterData?.teamMembers) {
+      setTeamRoster(teamRosterData.teamMembers)
+      console.log('✅ Team roster loaded:', teamRosterData.teamMembers.length, 'members')
+    }
+  }, [])
+
   // Load available clues from preset
   useEffect(() => {
     const preset = presetData.find(p => p.id === questionPreset)
@@ -157,14 +168,28 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }, [leaderboardPauseTimer, phase])
 
   const startRound = async () => {
-    const availableCluesPool = availableClues.filter((_, i) => !usedClues.includes(i))
-    const pool = availableCluesPool.length === 0 ? availableClues : availableCluesPool
+    // Select a random player from those who joined
+    const selectedPlayer = players[Math.floor(Math.random() * players.length)]
+
+    // Check if this player is in the team roster
+    const rosterMember = teamRoster.find(m => m.name === selectedPlayer.name)
+
+    // Get clues: prefer roster-specific clues, fall back to defaults
+    let clueSource = DEFAULT_CLUES
+    if (rosterMember?.guessTheCoworker?.clues && rosterMember.guessTheCoworker.clues.length > 0) {
+      clueSource = rosterMember.guessTheCoworker.clues
+      console.log(`📝 Using personalized clues for ${selectedPlayer.name}`)
+    } else {
+      console.log(`📝 Using default clues for ${selectedPlayer.name}`)
+    }
+
+    const availableCluesPool = clueSource.filter((_, i) => !usedClues.includes(i))
+    const pool = availableCluesPool.length === 0 ? clueSource : availableCluesPool
 
     const randomIdx = Math.floor(Math.random() * pool.length)
     const selectedClue = pool[randomIdx]
-    const selectedPlayer = players[Math.floor(Math.random() * players.length)]
 
-    setUsedClues([...usedClues, availableClues.indexOf(selectedClue)])
+    setUsedClues([...usedClues, clueSource.indexOf(selectedClue)])
     setAnswer(selectedPlayer)
     setClues([selectedClue])
     setVotes({})

@@ -1,0 +1,74 @@
+{
+  "teamMembers": [
+    {
+      "id": "member-001",
+      "name": "Team Member 1",
+      "avatar": "🦸",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "always forgets to unmute",
+          "loves coffee more than sleep",
+          "background always changes"
+        ]
+      }
+    },
+    {
+      "id": "member-002",
+      "name": "Team Member 2",
+      "avatar": "🐱",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "takes the best screenshots",
+          "always has a cat on camera",
+          "claims they're on mute"
+        ]
+      }
+    },
+    {
+      "id": "member-003",
+      "name": "Team Member 3",
+      "avatar": "🦊",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "types in all caps",
+          "first to show up to meetings",
+          "has the funniest memes"
+        ]
+      }
+    },
+    {
+      "id": "member-004",
+      "name": "Team Member 4",
+      "avatar": "🧙",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "background is always blurry",
+          "talks over everyone",
+          "never has their camera on"
+        ]
+      }
+    },
+    {
+      "id": "member-005",
+      "name": "Team Member 5",
+      "avatar": "🐉",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "always late to meetings",
+          "forgets to turn off share screen",
+          "uses too many emojis"
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2026-06-08",
+    "totalMembers": 5,
+    "instructions": "Edit this file in GitHub. Each team member needs 3-5 unique clues. When you commit and push, Netlify auto-deploys within 30 seconds."
+  }
+}
