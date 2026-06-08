@@ -34,7 +34,7 @@ const AVATARS = [
   '🦄', '🧙', '🎪', '🚀', '⚡', '🎸', '🐺', '🦅', '🐉', '🧛'
 ]
 
-export default function GuessTheCoworker({ gameId, isHost, playerName, playerAvatar, gameCode, onExit, onGameEnd }) {
+export default function GuessTheCoworker({ gameId, isHost, playerName, playerAvatar, gameCode, onExit, onGameEnd, teamRoster: initialTeamRoster }) {
   const [phase, setPhase] = useState('waiting') // waiting, playing, voting, reveal, leaderboard-pause, results
   const [players, setPlayers] = useState([])
   const [clues, setClues] = useState([])
@@ -120,13 +120,12 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     return () => clearInterval(interval)
   }, [gameId, isHost])
 
-  // Load team roster on mount
+  // Load team roster from prop or fallback to data file
   useEffect(() => {
-    if (teamRosterData?.teamMembers) {
-      setTeamRoster(teamRosterData.teamMembers)
-      console.log('✅ Team roster loaded:', teamRosterData.teamMembers.length, 'members')
-    }
-  }, [])
+    const rosterToUse = initialTeamRoster || teamRosterData?.teamMembers || []
+    setTeamRoster(rosterToUse)
+    console.log('✅ Team roster loaded:', rosterToUse.length, 'members')
+  }, [initialTeamRoster])
 
   // Load available clues from preset
   useEffect(() => {
@@ -180,23 +179,17 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }, [leaderboardPauseTimer, phase])
 
   const startRound = async () => {
-    // Select a random player from those who joined
-    const selectedPlayer = players[Math.floor(Math.random() * players.length)]
+    // Select a random team member from the roster (not from players)
+    // This is like Guess Who - the characters are fixed regardless of who's playing
+    const selectedTeamMember = teamRoster[Math.floor(Math.random() * teamRoster.length)]
 
-    // Check if this player is in the team roster (match by first name or full name)
-    const rosterMember = teamRoster.find(m => {
-      const playerFirstName = selectedPlayer.name.split(' ')[0].toLowerCase()
-      const rosterFirstName = m.name.split(' ')[0].toLowerCase()
-      return m.name.toLowerCase() === selectedPlayer.name.toLowerCase() || rosterFirstName === playerFirstName
-    })
-
-    // Get clues: prefer roster-specific clues, fall back to defaults
+    // Get clues from the selected team member
     let clueSource = DEFAULT_CLUES
-    if (rosterMember?.guessTheCoworker?.clues && rosterMember.guessTheCoworker.clues.length > 0) {
-      clueSource = rosterMember.guessTheCoworker.clues
-      console.log(`📝 Using personalized clues for ${selectedPlayer.name} (matched: ${rosterMember.name})`)
+    if (selectedTeamMember?.guessTheCoworker?.clues && selectedTeamMember.guessTheCoworker.clues.length > 0) {
+      clueSource = selectedTeamMember.guessTheCoworker.clues
+      console.log(`📝 Using personalized clues for ${selectedTeamMember.name}`)
     } else {
-      console.log(`📝 Using default clues for ${selectedPlayer.name}`)
+      console.log(`📝 Using default clues for ${selectedTeamMember.name}`)
     }
 
     const availableCluesPool = clueSource.filter((_, i) => !usedClues.includes(i))
@@ -206,7 +199,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     const selectedClue = pool[randomIdx]
 
     setUsedClues([...usedClues, clueSource.indexOf(selectedClue)])
-    setAnswer(selectedPlayer)
+    setAnswer(selectedTeamMember)
     setClues([selectedClue])
     setVotes({})
     setTimer(20)
@@ -218,7 +211,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       players,
       scores,
       clues: [selectedClue],
-      answer: selectedPlayer,
+      answer: selectedTeamMember,
       votes: {},
       timer: 20,
       roundCount: roundCount + 1
@@ -385,25 +378,25 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
             </div>
           )}
 
-          {/* PLAYER VIEW: sees clue + avatar buttons to vote */}
+          {/* PLAYER VIEW: sees clue + team member buttons to vote */}
           {!isHost && (
             <div className="player-view">
               <p className="clue-display">🔍 <strong>{clues[0]}</strong></p>
               <p className="timer">⏱️ {timer}s</p>
 
               <div className="avatars-grid">
-                {players.map((p) => (
+                {teamRoster.map((member) => (
                   <button
-                    key={p.name}
-                    onClick={() => submitVote(p.name)}
-                    className={`avatar-btn ${pendingVote === p.name ? 'selected' : ''} ${voteSending && pendingVote !== p.name ? 'dimmed' : ''}`}
+                    key={member.id}
+                    onClick={() => submitVote(member.name)}
+                    className={`avatar-btn ${pendingVote === member.name ? 'selected' : ''} ${voteSending && pendingVote !== member.name ? 'dimmed' : ''}`}
                   >
-                    <div className="avatar">{p.avatar}</div>
-                    <div className="name">{p.name}</div>
-                    {pendingVote === p.name && voteSending && (
+                    <div className="avatar">{member.avatar}</div>
+                    <div className="name">{member.name}</div>
+                    {pendingVote === member.name && voteSending && (
                       <div className="vote-status sending">Sending...</div>
                     )}
-                    {pendingVote === p.name && voteConfirmed && (
+                    {pendingVote === member.name && voteConfirmed && (
                       <div className="vote-status confirmed">✓ Voted</div>
                     )}
                   </button>

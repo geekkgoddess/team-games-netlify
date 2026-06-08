@@ -8,7 +8,9 @@ import RulesScreen from './components/RulesScreen'
 import PlayerSetup from './components/PlayerSetup'
 import GameRating from './components/GameRating'
 import HostLobby from './components/HostLobby'
+import TeamAdmin from './components/TeamAdmin'
 import { generateGameCode } from './utils/gameUtils'
+import teamRosterData from './data/team-roster.json'
 import './App.css'
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState([])
   const [loadingCode, setLoadingCode] = useState(false)
   const [codeError, setCodeError] = useState('')
+  const [teamRoster, setTeamRoster] = useState(teamRosterData?.teamMembers || [])
 
   useEffect(() => {
     const url = new URL(window.location)
@@ -154,6 +157,12 @@ export default function App() {
     window.history.replaceState({}, '', window.location.pathname)
   }
 
+  const handleSaveTeamRoster = (updatedRoster) => {
+    setTeamRoster(updatedRoster)
+    // Save to localStorage for persistence
+    localStorage.setItem('teamRoster', JSON.stringify(updatedRoster))
+  }
+
   // --- SCREENS ---
 
   if (screen === 'role') {
@@ -161,7 +170,17 @@ export default function App() {
   }
 
   if (screen === 'host-menu') {
-    return <GameMenu onStartGame={selectGame} onBack={goHome} />
+    return <GameMenu onStartGame={selectGame} onBack={goHome} onManageTeam={() => setScreen('team-admin')} />
+  }
+
+  if (screen === 'team-admin') {
+    return (
+      <TeamAdmin
+        teamRoster={teamRoster}
+        onSave={handleSaveTeamRoster}
+        onBack={() => setScreen('host-menu')}
+      />
+    )
   }
 
   if (screen === 'host-lobby') {
@@ -240,27 +259,33 @@ export default function App() {
       playerAvatar,
       gameCode,
       onExit: goHome,
-      onGameEnd: handleGameEnd
+      onGameEnd: handleGameEnd,
+      teamRoster
     }
     switch (currentGame) {
       case 'guess-coworker': return <GuessTheCoworker {...gameProps} />
       case '2-truths': return <TwoTruthsAndALie {...gameProps} />
       case 'tah': return <TeamsAgainstHumanity {...gameProps} />
-      default: return <GameMenu onStartGame={selectGame} onBack={goHome} />
+      default: return <GameMenu onStartGame={selectGame} onBack={goHome} onManageTeam={() => setScreen('team-admin')} />
     }
   }
 
   return null
 }
 
-function GameMenu({ onStartGame, onBack }) {
+function GameMenu({ onStartGame, onBack, onManageTeam }) {
   return (
     <div className="menu-container">
-      <button onClick={onBack} style={{
-        position:'absolute', top:'20px', left:'20px',
-        background:'#444', color:'white', border:'none',
-        padding:'10px 20px', borderRadius:'8px', cursor:'pointer'
-      }}>← Back</button>
+      <div style={{ position: 'absolute', top: '20px', left: '20px', display: 'flex', gap: '10px' }}>
+        <button onClick={onBack} style={{
+          background:'#7c3aed', color:'white', border:'none',
+          padding:'10px 20px', borderRadius:'8px', cursor:'pointer', fontWeight: '600'
+        }}>← Back</button>
+        <button onClick={onManageTeam} style={{
+          background:'#00f5d4', color:'#080c14', border:'none',
+          padding:'10px 20px', borderRadius:'8px', cursor:'pointer', fontWeight: '600'
+        }}>👥 Manage Team</button>
+      </div>
       <div className="menu-header">
         <h1>🎮 TEAM GAMES</h1>
         <p>Pick a game to play</p>
