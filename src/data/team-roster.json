@@ -2,73 +2,238 @@
   "teamMembers": [
     {
       "id": "member-001",
-      "name": "Team Member 1",
+      "name": "Eddie Oliveira",
       "avatar": "🦸",
       "status": "active",
       "guessTheCoworker": {
         "clues": [
-          "always forgets to unmute",
-          "loves coffee more than sleep",
-          "background always changes"
+          "Plays drums",
+          "Fought above their weight class in an amateur Muay Thai tournament and won.",
+          "Waiter at a bowling arcade.",
+          "Hometown is the name of a dairy brand",
+          "Gross Food: A cocktail called: Michelada",
+          "CPR certified",
+          "Solo skydiving.",
+          "Half of their leg is fully tattooed."
         ]
       }
     },
     {
       "id": "member-002",
-      "name": "Team Member 2",
+      "name": "Kevin Hussey",
       "avatar": "🐱",
       "status": "active",
       "guessTheCoworker": {
         "clues": [
-          "takes the best screenshots",
-          "always has a cat on camera",
-          "claims they're on mute"
+          "Ferment foods like pickles",
+          "kimchi",
+          "and hot sauce.",
+          "Hometown is named after a Lenape Native American Tribe",
+          "Gross Food: Octopus",
+          "President of the Student Council",
+          "Bucket List: I want to see the northern lights.",
+          "Has 2 Kids. A 1 year old boy and a 4 year old girl"
         ]
       }
     },
     {
       "id": "member-003",
-      "name": "Team Member 3",
+      "name": "Kevvin Miller",
       "avatar": "🦊",
       "status": "active",
       "guessTheCoworker": {
         "clues": [
-          "types in all caps",
-          "first to show up to meetings",
-          "has the funniest memes"
+          "A lawn and grass fanatic",
+          "I swam in the Potomac River on the 4th of July!",
+          "First job sorting peaches at a packing shed",
+          "Hometown has a mandate that every head of household must maintain a firearm and ammo to protect city inhabitants",
+          "Gross Food: Bowl of Frosted Flakes cereal mixed with pieces of Bacon or breakfast sausage.",
+          "On College Bowling Team",
+          "Bucket List: Trip to Rome, Italy!",
+          "Has a collection of \"Spoons\" marked with every state and 15+ Countries outside of the US."
         ]
       }
     },
     {
       "id": "member-004",
-      "name": "Team Member 4",
-      "avatar": "🧙",
+      "name": "Tom Nagy",
+      "avatar": "😎",
       "status": "active",
       "guessTheCoworker": {
         "clues": [
-          "background is always blurry",
-          "talks over everyone",
-          "never has their camera on"
+          "Plays guitar",
+          "I kept M&M's from having a 7th color.",
+          "Made Red Lobster cheddar biscuits.",
+          "Parents are immigrants from Hungary",
+          "Gross Food: Pickled jalapeno juice",
+          "CPR certified",
+          "Bucket List: Golf trip to Scotland"
         ]
       }
     },
     {
       "id": "member-005",
-      "name": "Team Member 5",
-      "avatar": "🐉",
+      "name": "Chris Durso",
+      "avatar": "🐺",
       "status": "active",
       "guessTheCoworker": {
         "clues": [
-          "always late to meetings",
-          "forgets to turn off share screen",
-          "uses too many emojis"
+          "Titanic lore connoisseur",
+          "I own a Discord server with 20K active users.",
+          "First job was a Farmhand",
+          "Michael Imperioli and Laura Branigan are from their hometown",
+          "Gross Food: Cookie quality is inversely proportional to how long they are cooked. Cookie Dough > Cookies.",
+          "Makes own props and apparel out of leather",
+          "Bucket List: Cage diving with great white sharks. Fun Fact: the term bucket list didn't exist before the movie came out.",
+          "I thought I would be an artist when I was a kid. I used to draw and paint regularly, have a model collection that I built and painted as a kid and still paint miniatures when I find the time."
+        ]
+      }
+    },
+    {
+      "id": "member-006",
+      "name": "Alfredo Huerta",
+      "avatar": "🐲",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Plays Banjo.",
+          "I've been in 3 total loss collisions.",
+          "Cyber cafe clerk.",
+          "Hometown is the 2nd largest city located in a dessert",
+          "Gross Food: Ginger-ale",
+          "Salsa dancer",
+          "Bucket List: Learn to fly a plane",
+          "In a committed, complicated relationship with the gym"
+        ]
+      }
+    },
+    {
+      "id": "member-007",
+      "name": "Dawson Carter",
+      "avatar": "🤠",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Above average cook.",
+          "I was detained at gunpoint by police in Nepal.",
+          "Project Manager and CAD Designer at age 17.",
+          "Hometown has the largest population of Amish people in the world",
+          "Gross Food: Peanut Butter and Tortillas or Canned Tuna (not together)",
+          "Wilderness first aid certified",
+          "Bucket List: Pilots License",
+          "Owns a pair of $400 sneakers"
+        ]
+      }
+    },
+    {
+      "id": "member-008",
+      "name": "Joanna Hodge",
+      "avatar": "🦉",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Listens to books and videos at 2x speed",
+          "I went to high school with 2 NFL players.",
+          "Summer camp counselor.",
+          "High school football games were held  in college stadiums",
+          "Gross Food: Microwaved Scrambled Eggs",
+          "3 time 1st Placed in regional competition as a Soloist and in Poetry Recital",
+          "Bucket List: Cross country train ride in a Roomette",
+          "Has 214 apps on my phone"
+        ]
+      }
+    },
+    {
+      "id": "member-009",
+      "name": "Lauren Kim",
+      "avatar": "🐝",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Paints pet portraits",
+          "Has a collection of over 70 mini figurines",
+          "HD Supply is their first job",
+          "Hometown host of the Taste of Alpharetta",
+          "Gross Food: Pig blood sausage",
+          "Most fashionable award on the tennis team",
+          "Bucket List: Go to Korea"
+        ]
+      }
+    },
+    {
+      "id": "member-010",
+      "name": "Eric Finelli",
+      "avatar": "🎭",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Plays drums also",
+          "I was an extra in a TV show.",
+          "Was a waiter at Perkins",
+          "Has no traffic lights",
+          "Gross Food: Straight up olives",
+          "Degree in Psychology",
+          "Bucket List: Visit Europe",
+          "Nope, this questionnaire has made me realize I'm pretty boring. Thanks Joanna."
+        ]
+      }
+    },
+    {
+      "id": "member-011",
+      "name": "Charlene Saenz",
+      "avatar": "🐢",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Recently started gymnastics",
+          "I went skateboarding with Justin Bieber.",
+          "Concession stand worker at a pool.",
+          "Hometown is also the hometown of the Jonas Brothers",
+          "Gross Food: cottage cheese ice cream",
+          "Won the Presidential Physical Fitness Award in elementary school",
+          "Bucket List: skydiving in Switzerland"
+        ]
+      }
+    },
+    {
+      "id": "member-012",
+      "name": "Malek Jesri",
+      "avatar": "⚡",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "Grapples for fun like jiu jitsu and wrestling.",
+          "I pitched an idea used in an ad campaign.",
+          "Worked at family print shop.",
+          "Hometown is the Hub for Aerospace",
+          "Gross Food: basic Fritos are fire",
+          "First aid certified and a scrum master certified",
+          "Bucket List: Wants to try moose meat"
+        ]
+      }
+    },
+    {
+      "id": "member-013",
+      "name": "Brandon Phillips",
+      "avatar": "🦁",
+      "status": "active",
+      "guessTheCoworker": {
+        "clues": [
+          "DJs at home.",
+          "I assisted a sushi chef making kosher vegan sushi.",
+          "Cart wrangler at a grocery store.",
+          "Famous folks from hometown - Outkast, Keenan Thompson, Hines Ward",
+          "Gross Food: Crickets/Grubs",
+          "Georgia certified to teach middle school social studies",
+          "Bucket List: Visit every continent (excluding Antarctica)",
+          "Was a middle school teacher (briefly) until they realized they don't like kids"
         ]
       }
     }
   ],
   "metadata": {
     "lastUpdated": "2026-06-08",
-    "totalMembers": 5,
-    "instructions": "Edit this file in GitHub. Each team member needs 3-5 unique clues. When you commit and push, Netlify auto-deploys within 30 seconds."
+    "totalMembers": 13,
+    "instructions": "Team member clues for Guess the Coworker game. Automatically populated from team survey data."
   }
 }
