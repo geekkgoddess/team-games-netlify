@@ -3,6 +3,7 @@ import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/guess-the-coworker.json'
 import teamRosterData from '../data/team-roster.json'
+import { playCorrectChime, playApplause } from '../utils/soundEffects'
 import './games.css'
 
 // Fallback clues if preset loading fails
@@ -290,6 +291,12 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setScores(newScores)
     setPhase('reveal')
     setLastLocalStateChange(Date.now())
+
+    // Play sound effect if anyone got it correct
+    if (correctVoters.length > 0) {
+      playCorrectChime()
+      setTimeout(() => playApplause(), 600)
+    }
 
     await syncGameState(gameId, {
       phase: 'reveal',

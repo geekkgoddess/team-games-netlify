@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/two-truths-and-a-lie.json'
+import { playCorrectChime, playApplause } from '../utils/soundEffects'
 import './games.css'
 
 const DEFAULT_CHALLENGES = [
@@ -180,8 +181,17 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       return
     }
 
+    // Filter out host from players to ensure host cannot play
+    const activePlayers = players.filter(p => p.name !== playerName || !isHost)
+
+    if (activePlayers.length === 0) {
+      setPhase('results')
+      await syncGameState(gameId, { phase: 'results', scores })
+      return
+    }
+
     // Pick next active player (random, avoiding those who've already been active)
-    const playersAvailable = players.filter((p, idx) => !playersWhoHaveBeenActive.includes(idx))
+    const playersAvailable = activePlayers.filter((p, idx) => !playersWhoHaveBeenActive.includes(idx))
     let nextPlayerIdx
 
     if (playersAvailable.length === 0) {
@@ -275,6 +285,12 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     setWrongGuessers(incorrect)
     setScores(newScores)
     setPhase('reveal')
+
+    // Play sound effect if anyone got it correct
+    if (correctGuessers.length > 0) {
+      playCorrectChime()
+      setTimeout(() => playApplause(), 600)
+    }
 
     await syncGameState(gameId, {
       phase: 'reveal',

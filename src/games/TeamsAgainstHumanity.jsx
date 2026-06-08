@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/teams-against-humanity.json'
+import { playCorrectChime, playApplause } from '../utils/soundEffects'
 import './games.css'
 
 const DEFAULT_PROMPTS = [
@@ -192,6 +193,10 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
     newScores[submitterName] = (newScores[submitterName] || 0) + points
 
     setScores(newScores)
+
+    // Play sound effect when someone wins a round
+    playCorrectChime()
+    setTimeout(() => playApplause(), 600)
 
     await syncGameState(gameId, {
       scores: newScores
