@@ -99,10 +99,10 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
         const data = await response.json()
         if (data.players) setPlayers(data.players)
-        // Don't update phase, currentPlayer, or statements while entering statements
-        // This prevents polling from interfering with the player's input
-        if (data.phase && data.phase !== 'enter-statements') setPhase(data.phase)
-        if (data.currentPlayer && phase !== 'enter-statements') setCurrentPlayer(data.currentPlayer)
+        // Always update phase and currentPlayer - localStatements protects input fields from interference
+        if (data.phase) setPhase(data.phase)
+        if (data.currentPlayer) setCurrentPlayer(data.currentPlayer)
+        // Only update synced statements if not actively entering statements
         if (data.statements && phase !== 'enter-statements') setStatements(data.statements)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.lie !== undefined) setLie(data.lie)
