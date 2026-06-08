@@ -247,14 +247,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     let success = false
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
+        // Only send the vote update, not the entire game state
+        // This prevents players from overwriting each other's data
         await syncGameState(gameId, {
-          phase: 'voting',
-          players,
-          scores,
-          clues,
-          answer,
-          votes: newVotes,
-          timer
+          votes: newVotes
         })
         success = true
         break
