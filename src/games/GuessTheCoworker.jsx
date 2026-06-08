@@ -54,6 +54,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [questionPreset, setQuestionPreset] = useState('default')
   const [teamRoster, setTeamRoster] = useState([])
   const [usedTeamMemberIndices, setUsedTeamMemberIndices] = useState([])
+  const [lastLocalStateChange, setLastLocalStateChange] = useState(0)
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -91,12 +92,15 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
         if (data.votes !== undefined) setVotes(data.votes)
-        if (data.phase && data.phase !== phase) setPhase(data.phase)
+        // Only update phase if we haven't made a local change in the last 600ms
+        if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 600) {
+          setPhase(data.phase)
+        }
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
-  }, [gameId, isHost, phase])
+  }, [gameId, isHost, phase, lastLocalStateChange])
 
   // Player polling
   useEffect(() => {
@@ -213,6 +217,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setTimer(20)
     setRoundCount(prev => prev + 1)
     setPhase('voting')
+    setLastLocalStateChange(Date.now())
 
     await syncGameState(gameId, {
       phase: 'voting',
@@ -264,7 +269,19 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }
 
   const revealAnswer = async () => {
-    const correctVoters = Object.entries(votes)
+    // Fetch latest votes from server before processing
+    let latestVotes = votes
+    try {
+      const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
+      const serverState = await response.json()
+      if (serverState.votes) {
+        latestVotes = serverState.votes
+      }
+    } catch (e) {
+      console.log('Could not fetch latest votes, using local votes')
+    }
+
+    const correctVoters = Object.entries(latestVotes)
       .filter(([_, voted]) => voted === answer?.name)
       .map(([voter]) => voter)
 
@@ -276,6 +293,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setGuessedCorrectly(correctVoters)
     setScores(newScores)
     setPhase('reveal')
+    setLastLocalStateChange(Date.now())
 
     await syncGameState(gameId, {
       phase: 'reveal',
@@ -283,7 +301,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       scores: newScores,
       clues,
       answer,
-      votes,
+      votes: latestVotes,
       guessedCorrectly: correctVoters,
       timer: 0
     })
@@ -291,6 +309,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
 
   const goToLeaderboard = async () => {
     setPhase('leaderboard-pause')
+    setLastLocalStateChange(Date.now())
     setLeaderboardPauseTimer(4)
 
     await syncGameState(gameId, {
@@ -306,6 +325,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
 
   const endGame = async () => {
     setPhase('results')
+    setLastLocalStateChange(Date.now())
     await syncGameState(gameId, { phase: 'results', players, scores })
   }
 
