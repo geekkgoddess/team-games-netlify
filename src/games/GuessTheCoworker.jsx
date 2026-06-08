@@ -141,13 +141,25 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   // Voting timer
   useEffect(() => {
     if (phase !== 'voting' || !isHost || timer <= 0) return
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       const newTimer = timer - 1
       setTimer(newTimer)
-      syncGameState(gameId, { phase: 'voting', players, scores, clues, answer, votes, timer: newTimer })
+
+      // Fetch latest votes from server before syncing timer
+      // This prevents overwriting votes that came in from other players
+      try {
+        const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
+        const serverState = await response.json()
+        const latestVotes = serverState.votes || votes
+
+        await syncGameState(gameId, { phase: 'voting', players, scores, clues, answer, votes: latestVotes, timer: newTimer })
+      } catch (e) {
+        // Fallback to local votes if fetch fails
+        await syncGameState(gameId, { phase: 'voting', players, scores, clues, answer, votes, timer: newTimer })
+      }
     }, 1000)
     return () => clearTimeout(timeout)
-  }, [timer, phase, isHost])
+  }, [timer, phase, isHost, gameId, players, scores, clues, answer, votes])
 
   // Leaderboard pause countdown
   useEffect(() => {
@@ -171,14 +183,18 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     // Select a random player from those who joined
     const selectedPlayer = players[Math.floor(Math.random() * players.length)]
 
-    // Check if this player is in the team roster
-    const rosterMember = teamRoster.find(m => m.name === selectedPlayer.name)
+    // Check if this player is in the team roster (match by first name or full name)
+    const rosterMember = teamRoster.find(m => {
+      const playerFirstName = selectedPlayer.name.split(' ')[0].toLowerCase()
+      const rosterFirstName = m.name.split(' ')[0].toLowerCase()
+      return m.name.toLowerCase() === selectedPlayer.name.toLowerCase() || rosterFirstName === playerFirstName
+    })
 
     // Get clues: prefer roster-specific clues, fall back to defaults
     let clueSource = DEFAULT_CLUES
     if (rosterMember?.guessTheCoworker?.clues && rosterMember.guessTheCoworker.clues.length > 0) {
       clueSource = rosterMember.guessTheCoworker.clues
-      console.log(`📝 Using personalized clues for ${selectedPlayer.name}`)
+      console.log(`📝 Using personalized clues for ${selectedPlayer.name} (matched: ${rosterMember.name})`)
     } else {
       console.log(`📝 Using default clues for ${selectedPlayer.name}`)
     }
