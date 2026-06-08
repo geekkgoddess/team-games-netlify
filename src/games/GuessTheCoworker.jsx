@@ -137,6 +137,14 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     }
   }, [questionPreset])
 
+  // Clear player's vote selection when a new voting round starts
+  useEffect(() => {
+    if (phase === 'voting') {
+      setPendingVote(null)
+      setVoteConfirmed(false)
+    }
+  }, [phase, answer])
+
   // Voting timer
   useEffect(() => {
     if (phase !== 'voting' || !isHost || timer <= 0) return
