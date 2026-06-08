@@ -1,0 +1,50 @@
+{
+  "champion": {
+    "name": "Joanna H.",
+    "avatar": "🦸",
+    "game": "Guess the Coworker",
+    "wins": 5,
+    "score": 320
+  },
+  "topPlayers": [
+    {
+      "rank": 1,
+      "avatar": "🦸",
+      "name": "Joanna H.",
+      "game": "Coworker",
+      "points": 320
+    },
+    {
+      "rank": 2,
+      "avatar": "🐱",
+      "name": "Tori M.",
+      "game": "2 Truths",
+      "points": 280
+    },
+    {
+      "rank": 3,
+      "avatar": "🦊",
+      "name": "Alex R.",
+      "game": "TAH",
+      "points": 245
+    },
+    {
+      "rank": 4,
+      "avatar": "🧙",
+      "name": "Sam K.",
+      "game": "Coworker",
+      "points": 210
+    },
+    {
+      "rank": 5,
+      "avatar": "🐉",
+      "name": "Jordan T.",
+      "game": "2 Truths",
+      "points": 185
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2026-06-08",
+    "instructions": "Edit this file in landing/ folder. Drag-drop to Netlify to deploy changes to landing page."
+  }
+}

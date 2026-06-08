@@ -655,7 +655,7 @@ function applyChanges() {
   // Update the live page
   renderLeaderboard()
   closeAdmin()
-  showToast('✅ Leaderboard updated! (To persist on GitHub, use "Export for GitHub" button)')
+  showToast('✅ Leaderboard updated! Click "Export for GitHub" or "Edit on GitHub" to save permanently.')
 }
 
 // Export leaderboard in GitHub-friendly format
@@ -686,12 +686,12 @@ function exportLeaderboardJSON() {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 
-  showToast('📥 leaderboard.json downloaded! Move to src/data/leaderboard.json in your repo and commit.')
+  showToast('📥 leaderboard.json downloaded! Move to landing/data/leaderboard.json and drag-drop folder to Netlify.')
 }
 
 // Open GitHub editor for leaderboard
 function openGitHubLeaderboardEditor() {
-  const githubUrl = 'https://github.com/geekkgoddess/team-games-netlify/edit/main/src/data/leaderboard.json'
+  const githubUrl = 'https://github.com/geekkgoddess/team-games-netlify/edit/main/landing/data/leaderboard.json'
   window.open(githubUrl, '_blank')
   showToast('Opening GitHub editor in new tab...')
 }
