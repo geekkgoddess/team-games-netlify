@@ -403,6 +403,12 @@ footer{border-top:1px solid var(--border);padding:32px 0;text-align:center}
           <button class="btn-cancel" onclick="closeAdmin()">Cancel</button>
         </div>
 
+        <!-- GitHub Sync Options -->
+        <div style="border-top:1px solid #2a2a3a; padding-top:1rem; margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap">
+          <button class="btn-cancel" onclick="exportLeaderboardJSON()" style="flex:1; background:#1e2d47; border-color:#00f5d4; color:#00f5d4">📥 Export for GitHub</button>
+          <button class="btn-cancel" onclick="openGitHubLeaderboardEditor()" style="flex:1; background:#1e2d47; border-color:#00f5d4; color:#00f5d4">📝 Edit on GitHub</button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -426,19 +432,35 @@ const DEFAULT_LEADERBOARD = {
   ]
 }
 
-// Load from localStorage or use defaults
-let leaderData = (() => {
-  try {
-    const saved = localStorage.getItem('leaderData')
-    return saved ? JSON.parse(saved) : DEFAULT_LEADERBOARD
-  } catch (e) {
-    console.error('Error loading leaderData:', e)
-    return DEFAULT_LEADERBOARD
-  }
-})()
+// Load from JSON file (GitHub-based), with fallback to defaults
+let leaderData = DEFAULT_LEADERBOARD
 
-// Debug: log what was loaded
-console.log('📊 Leaderboard loaded from localStorage:', leaderData)
+// Fetch leaderboard from /data/leaderboard.json (deployed file)
+fetch('/data/leaderboard.json')
+  .then(r => r.json())
+  .then(data => {
+    // Transform from new format to old format for compatibility
+    leaderData = {
+      champ: data.champion,
+      players: data.topPlayers
+    }
+    console.log('✅ Leaderboard loaded from GitHub file:', leaderData)
+    renderLeaderboard() // Re-render with loaded data
+  })
+  .catch(e => {
+    console.warn('⚠️ Could not load leaderboard.json, using defaults:', e.message)
+    // Fall back to localStorage if file not found
+    try {
+      const saved = localStorage.getItem('leaderData')
+      if (saved) {
+        leaderData = JSON.parse(saved)
+        console.log('📱 Using localStorage backup:', leaderData)
+      }
+    } catch (err) {
+      console.error('Error loading from localStorage:', err)
+    }
+    renderLeaderboard()
+  })
 
 const GAMES_DATA = {
   coworker: {
@@ -621,10 +643,10 @@ function applyChanges() {
     })
   })
 
-  // Save to localStorage
+  // Save to localStorage as backup
   try {
     localStorage.setItem('leaderData', JSON.stringify(leaderData))
-    console.log('✅ Saved to localStorage:', leaderData)
+    console.log('✅ Saved to localStorage (backup):', leaderData)
   } catch (e) {
     console.error('❌ localStorage error:', e)
     alert('Could not save: ' + e.message)
@@ -633,7 +655,45 @@ function applyChanges() {
   // Update the live page
   renderLeaderboard()
   closeAdmin()
-  showToast('Leaderboard updated!')
+  showToast('✅ Leaderboard updated! (To persist on GitHub, use "Export for GitHub" button)')
+}
+
+// Export leaderboard in GitHub-friendly format
+function exportLeaderboardJSON() {
+  const exportData = {
+    champion: leaderData.champ,
+    topPlayers: leaderData.players.map((p, idx) => ({
+      rank: idx + 1,
+      avatar: p.avatar,
+      name: p.name,
+      game: p.game,
+      points: parseInt(p.pts) || 0
+    })),
+    metadata: {
+      lastUpdated: new Date().toISOString().split('T')[0],
+      instructions: 'Edit this file in GitHub. When you commit and push, Netlify auto-deploys within 30 seconds.'
+    }
+  }
+
+  const json = JSON.stringify(exportData, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'leaderboard.json'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+
+  showToast('📥 leaderboard.json downloaded! Move to src/data/leaderboard.json in your repo and commit.')
+}
+
+// Open GitHub editor for leaderboard
+function openGitHubLeaderboardEditor() {
+  const githubUrl = 'https://github.com/geekkgoddess/team-games-netlify/edit/main/src/data/leaderboard.json'
+  window.open(githubUrl, '_blank')
+  showToast('Opening GitHub editor in new tab...')
 }
 
 // ── TOAST ───────────────────────────────────────────────────
