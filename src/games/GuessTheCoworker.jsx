@@ -64,6 +64,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   // conflicting clues, timestamps, and phase values — which is what causes rounds 2-4
   // to show out-of-sync timers and glitchy flip-flop screens.
   const autoAdvancedRef = useRef(false)
+  // When true, the "Next Round →" button is disabled until revealAnswer()'s server
+  // push completes — prevents a race where goToLeaderboard() fires before the reveal
+  // POST lands and the late POST then overwrites phase back to 'reveal'.
+  const [revealPending, setRevealPending] = useState(false)
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -290,23 +294,30 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }
 
   const revealAnswer = async () => {
-    // Fetch latest votes from server before processing
+    // Block the "Next Round →" button until our server push completes.
+    // This prevents goToLeaderboard() racing against this push and the late
+    // reveal POST overwriting phase back to 'reveal' after we've moved on.
+    setRevealPending(true)
+
+    // Fetch latest state from server — votes AND scores.
+    // Using server scores (not closure) ensures we always add to the real
+    // accumulated total, not a potentially stale React closure value.
     let latestVotes = votes
+    let latestScores = { ...scores }
     try {
       const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
       const serverState = await response.json()
-      if (serverState.votes) {
-        latestVotes = serverState.votes
-      }
+      if (serverState.votes) latestVotes = serverState.votes
+      if (serverState.scores) latestScores = serverState.scores
     } catch (e) {
-      console.log('Could not fetch latest votes, using local votes')
+      console.log('Could not fetch latest state, using local values')
     }
 
     const correctVoters = Object.entries(latestVotes)
       .filter(([_, voted]) => voted === answer?.name)
       .map(([voter]) => voter)
 
-    const newScores = { ...scores }
+    const newScores = { ...latestScores }
     correctVoters.forEach(voter => {
       newScores[voter] = (newScores[voter] || 0) + 10
     })
@@ -333,6 +344,9 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       timer: 0,
       leaderboardPauseTimer: 0
     })
+
+    // Server push complete — host can now safely advance to next round
+    setRevealPending(false)
   }
 
   const goToLeaderboard = async () => {
@@ -507,8 +521,12 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
           </div>
 
           {isHost && (
-            <button onClick={goToLeaderboard} className="btn-primary">
-              {roundCount >= maxRounds ? 'See Final Results →' : 'Next Round →'}
+            <button
+              onClick={goToLeaderboard}
+              className="btn-primary"
+              disabled={revealPending}
+            >
+              {revealPending ? 'Saving scores...' : roundCount >= maxRounds ? 'See Final Results →' : 'Next Round →'}
             </button>
           )}
         </div>
