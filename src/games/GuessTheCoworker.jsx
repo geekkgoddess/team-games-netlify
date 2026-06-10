@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/guess-the-coworker.json'
@@ -58,6 +58,12 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [teamRoster, setTeamRoster] = useState([])
   const [usedTeamMemberIndices, setUsedTeamMemberIndices] = useState([])
   const [lastLocalStateChange, setLastLocalStateChange] = useState(0)
+  // Ref guard: ensures startRound() fires at most once per leaderboard pause.
+  // Without this, slow network responses can flip the host back to 'leaderboard-pause'
+  // and re-trigger the auto-advance, causing multiple startRound() calls that push
+  // conflicting clues, timestamps, and phase values — which is what causes rounds 2-4
+  // to show out-of-sync timers and glitchy flip-flop screens.
+  const autoAdvancedRef = useRef(false)
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -97,8 +103,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
-        // Only update phase if we haven't made a local change in the last 600ms
-        if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 600) {
+        // Only update phase from server if we haven't made a local change in the last 3000ms.
+        // 3s gives a slow Netlify function enough time to confirm the push before polling
+        // can override local state — 600ms was too short and caused flip-flop on bad connections.
+        if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 3000) {
           setPhase(data.phase)
         }
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
@@ -180,9 +188,20 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     return () => clearTimeout(timeout)
   }, [leaderboardPauseTimer, phase, isHost, gameId])
 
-  // Auto-advance after leaderboard pause
+  // Auto-advance after leaderboard pause.
+  // Uses autoAdvancedRef to fire exactly once per pause — if the network is slow and
+  // the host polling briefly flips phase back to 'leaderboard-pause' before the server
+  // confirms 'voting', this guard prevents a second startRound() call with conflicting data.
   useEffect(() => {
+    // When leaderboard pause first starts (timer > 0), reset the guard so this
+    // pause gets its own clean auto-advance slot.
+    if (phase === 'leaderboard-pause' && leaderboardPauseTimer > 0) {
+      autoAdvancedRef.current = false
+    }
+    // When countdown hits 0, fire ONCE.
     if (phase === 'leaderboard-pause' && leaderboardPauseTimer === 0 && isHost) {
+      if (autoAdvancedRef.current) return  // already fired — do nothing
+      autoAdvancedRef.current = true
       if (roundCount >= maxRounds) {
         endGame()
       } else {
