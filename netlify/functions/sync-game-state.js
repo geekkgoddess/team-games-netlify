@@ -77,6 +77,25 @@ exports.handler = async (event) => {
           lastUpdate: Date.now()
         }
         let ignoreRoundReset = false
+        const isGuessTheCoworker = existing.gameName === 'guess-coworker' || state.gameName === 'guess-coworker'
+        const existingRound = existing.roundCount || 0
+        const incomingRound = state.roundCount || existingRound
+        const staleGuessRound = isGuessTheCoworker && state.roundCount !== undefined && incomingRound < existingRound
+
+        if (staleGuessRound) {
+          ignoreRoundReset = true
+          merged.phase = existing.phase
+          merged.roundCount = existing.roundCount
+          merged.clues = existing.clues
+          merged.answer = existing.answer
+          merged.votes = existing.votes
+          merged.scores = existing.scores
+          merged.guessedCorrectly = existing.guessedCorrectly
+          merged.roundStartedAt = existing.roundStartedAt
+          merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+          merged.usedTeamMemberIndices = existing.usedTeamMemberIndices
+          merged.usedClues = existing.usedClues
+        }
 
         // A slow lobby request should never rewind an active game back to
         // the player-join screen.
@@ -90,8 +109,6 @@ exports.handler = async (event) => {
         if (state.phase && existing.phase && state.phase !== existing.phase) {
           const existingRank = PHASE_ORDER[existing.phase]
           const incomingRank = PHASE_ORDER[state.phase]
-          const existingRound = existing.roundCount || 0
-          const incomingRound = state.roundCount || existingRound
           const startsNewRound = state.phase === 'voting' && incomingRound > existingRound
           const explicitlyResetting = state.allowWaitingReset || state.allowResultsReset
 
@@ -122,13 +139,18 @@ exports.handler = async (event) => {
             merged.guessedCorrectly = existing.guessedCorrectly
             merged.roundStartedAt = existing.roundStartedAt
             merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+            merged.usedTeamMemberIndices = existing.usedTeamMemberIndices
+            merged.usedClues = existing.usedClues
           }
         }
 
         // Deep-merge round data during play, but allow hosts to explicitly
         // reset it when starting a fresh round.
         if (state.votes !== undefined) {
-          merged.votes = state.resetVotes && !ignoreRoundReset ? state.votes : { ...existing.votes, ...state.votes }
+          const staleGuessVote = isGuessTheCoworker && state.roundCount !== undefined && incomingRound !== existingRound && !state.resetVotes
+          merged.votes = staleGuessVote
+            ? existing.votes
+            : state.resetVotes && !ignoreRoundReset ? state.votes : { ...existing.votes, ...state.votes }
         }
         if (state.submissions !== undefined) {
           merged.submissions = state.resetSubmissions && !ignoreRoundReset ? state.submissions : { ...existing.submissions, ...state.submissions }

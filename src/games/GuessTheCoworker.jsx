@@ -223,12 +223,13 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
 
     const interval = setInterval(() => {
       syncGameState(gameId, {
-        votes: { [playerName]: pendingVote }
+        votes: { [playerName]: pendingVote },
+        roundCount
       }).catch(() => {})
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [gameId, isHost, phase, playerName, pendingVote, voteConfirmed])
+  }, [gameId, isHost, phase, playerName, pendingVote, voteConfirmed, roundCount])
 
   // Voting timer — timestamp-based so all devices stay in sync automatically.
   // Instead of pushing a new timer value to the server every second (which caused
@@ -250,10 +251,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     const timeout = setTimeout(async () => {
       const newTimer = leaderboardPauseTimer - 1
       setLeaderboardPauseTimer(newTimer)
-      await syncGameState(gameId, { leaderboardPauseTimer: newTimer })
+      await syncGameState(gameId, { leaderboardPauseTimer: newTimer, roundCount })
     }, 1000)
     return () => clearTimeout(timeout)
-  }, [leaderboardPauseTimer, phase, isHost, gameId])
+  }, [leaderboardPauseTimer, phase, isHost, gameId, roundCount])
 
   // Auto-advance after leaderboard pause.
   // Uses autoAdvancedRef to fire exactly once per pause — if the network is slow and
@@ -365,7 +366,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         // Only send the vote update, not the entire game state
         // This prevents players from overwriting each other's data
         await syncGameState(gameId, {
-          votes: voteUpdate
+          votes: voteUpdate,
+          roundCount
         })
         success = true
         break
@@ -396,7 +398,9 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         try {
           const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
           const serverState = await response.json()
-          if (serverState.votes) latestVotes = { ...latestVotes, ...serverState.votes }
+          if (serverState.votes && (serverState.roundCount === undefined || serverState.roundCount === roundCount)) {
+            latestVotes = { ...latestVotes, ...serverState.votes }
+          }
           if (serverState.scores) latestScores = serverState.scores
           if (Object.keys(latestVotes).length >= players.length) break
         } catch (e) {
@@ -427,6 +431,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
 
       const revealState = {
         phase: 'reveal',
+        roundCount,
         players,
         scores: newScores,
         clues,
@@ -454,6 +459,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
 
     await syncGameState(gameId, {
       phase: 'leaderboard-pause',
+      roundCount,
       players,
       scores,
       clues,
@@ -467,7 +473,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const endGame = async () => {
     setPhase('results')
     setLastLocalStateChange(Date.now())
-    await syncGameState(gameId, { phase: 'results', players, scores, leaderboardPauseTimer: 0 })
+    await syncGameState(gameId, { phase: 'results', roundCount, players, scores, leaderboardPauseTimer: 0 })
   }
 
   // --- HOST: Waiting for players ---
