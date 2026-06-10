@@ -93,6 +93,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
         if (data.votes !== undefined) setVotes(data.votes)
+        if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         // Only update phase if we haven't made a local change in the last 600ms
         if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 600) {
           setPhase(data.phase)
@@ -119,6 +120,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.guessedCorrectly) setGuessedCorrectly(data.guessedCorrectly)
         if (data.roundCount !== undefined) setRoundCount(data.roundCount)
+        if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
@@ -157,28 +159,35 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       const newTimer = timer - 1
       setTimer(newTimer)
 
-      // Fetch latest votes from server before syncing timer
-      // This prevents overwriting votes that came in from other players
+      // IMPORTANT: Only push timer + votes — never include phase here.
+      // If we pushed phase: 'voting', it could arrive at the server AFTER
+      // revealAnswer() has already pushed phase: 'reveal', flipping everyone
+      // back to the voting screen (the continuous flip-flop bug).
       try {
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
         const serverState = await response.json()
-        const latestVotes = serverState.votes || votes
-
-        await syncGameState(gameId, { phase: 'voting', players, scores, clues, answer, votes: latestVotes, timer: newTimer })
+        const latestVotes = serverState.votes || {}
+        await syncGameState(gameId, { timer: newTimer, votes: latestVotes })
       } catch (e) {
-        // Fallback to local votes if fetch fails
-        await syncGameState(gameId, { phase: 'voting', players, scores, clues, answer, votes, timer: newTimer })
+        await syncGameState(gameId, { timer: newTimer })
       }
     }, 1000)
     return () => clearTimeout(timeout)
-  }, [timer, phase, isHost, gameId, players, scores, clues, answer, votes])
+  // Removed from deps: players, scores, clues, answer, votes
+  // 'votes' was causing the timer to reset by 1 second every time a player voted.
+  // We fetch votes fresh from the server inside the callback instead.
+  }, [timer, phase, isHost, gameId])
 
   // Leaderboard pause countdown
   useEffect(() => {
-    if (phase !== 'leaderboard-pause' || leaderboardPauseTimer <= 0) return
-    const timeout = setTimeout(() => setLeaderboardPauseTimer(leaderboardPauseTimer - 1), 1000)
+    if (phase !== 'leaderboard-pause' || !isHost || leaderboardPauseTimer <= 0) return
+    const timeout = setTimeout(async () => {
+      const newTimer = leaderboardPauseTimer - 1
+      setLeaderboardPauseTimer(newTimer)
+      await syncGameState(gameId, { leaderboardPauseTimer: newTimer })
+    }, 1000)
     return () => clearTimeout(timeout)
-  }, [leaderboardPauseTimer, phase])
+  }, [leaderboardPauseTimer, phase, isHost, gameId])
 
   // Auto-advance after leaderboard pause
   useEffect(() => {
@@ -217,6 +226,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setVotes({})
     setTimer(20)
     setRoundCount(prev => prev + 1)
+    setLeaderboardPauseTimer(0)
     setPhase('voting')
     setLastLocalStateChange(Date.now())
 
@@ -227,8 +237,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       clues: [selectedClue],
       answer: selectedTeamMember,
       votes: {},
+      resetVotes: true,
       timer: 20,
-      roundCount: roundCount + 1
+      roundCount: roundCount + 1,
+      leaderboardPauseTimer: 0
     })
   }
 
@@ -306,7 +318,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       answer,
       votes: latestVotes,
       guessedCorrectly: correctVoters,
-      timer: 0
+      timer: 0,
+      leaderboardPauseTimer: 0
     })
   }
 
@@ -322,14 +335,15 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       clues,
       answer,
       votes,
-      timer: 0
+      timer: 0,
+      leaderboardPauseTimer: 4
     })
   }
 
   const endGame = async () => {
     setPhase('results')
     setLastLocalStateChange(Date.now())
-    await syncGameState(gameId, { phase: 'results', players, scores })
+    await syncGameState(gameId, { phase: 'results', players, scores, leaderboardPauseTimer: 0 })
   }
 
   // --- HOST: Waiting for players ---
@@ -393,6 +407,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
           {/* HOST VIEW: sees vote count but NOT the answer */}
           {isHost && (
             <div className="host-info">
+              <p className="timer">Round {roundCount} of {maxRounds}</p>
               <p>🎯 Clue: <strong>{clues[0]}</strong></p>
               <h3 style={{ color: '#ffd700', margin: '16px 0' }}>
                 Votes: {Object.keys(votes).length} / {players.length}
@@ -401,17 +416,21 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
                 <div key={voter} className="vote">✓ {voter} voted</div>
               ))}
               <p style={{ color: '#888', marginTop: '12px', fontSize: '14px' }}>⏱️ {timer}s remaining</p>
-              {(timer === 0 || Object.keys(votes).length === players.length) && (
-                <button onClick={revealAnswer} className="btn-primary" style={{ marginTop: '20px' }}>
-                  Reveal Answer →
-                </button>
-              )}
+              <button
+                onClick={revealAnswer}
+                className="btn-primary"
+                disabled={timer > 0}
+                style={{ marginTop: '20px' }}
+              >
+                Reveal Answer →
+              </button>
             </div>
           )}
 
           {/* PLAYER VIEW: sees clue + team member buttons to vote */}
           {!isHost && (
             <div className="player-view">
+              <p className="timer">Round {roundCount} of {maxRounds}</p>
               <p className="clue-display">🔍 <strong>{clues[0]}</strong></p>
               <p className="timer">⏱️ {timer}s</p>
 
@@ -491,7 +510,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       <GameLayout title="👥 Leaderboard" onExit={onExit}>
         <div className="reveal-container">
           <h2>Round {roundCount} Done!</h2>
-          {isHost && <p style={{ color: '#ffd700' }}>Next round in {leaderboardPauseTimer}s...</p>}
+          {roundCount < maxRounds && <p style={{ color: '#ffd700' }}>Next round in {leaderboardPauseTimer}s...</p>}
+          {roundCount >= maxRounds && <p style={{ color: '#ffd700' }}>Final results loading...</p>}
           <div className="leaderboard">
             {Object.entries(scores).sort(([,a],[,b]) => b - a).map(([name, score], idx) => (
               <div key={name} className="score-row">
