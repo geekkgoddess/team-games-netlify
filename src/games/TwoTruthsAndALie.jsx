@@ -224,6 +224,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       statements: ['', '', ''],
       lie: null,
       votes: {},
+      resetVotes: true,
       guessedCorrectly: [],
       wrongGuessers: [],
       roundCount: roundCount + 1,
@@ -245,7 +246,8 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
       statements: localStatements,
       lie: selectedLie,
       timer: 20,
-      votes: {}
+      votes: {},
+      resetVotes: true
     })
   }
 
@@ -268,11 +270,22 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   }
 
   const revealAnswer = async () => {
-    const correctGuessers = Object.entries(votes)
+    let latestVotes = votes
+    try {
+      const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
+      const serverState = await response.json()
+      if (serverState.votes) {
+        latestVotes = serverState.votes
+      }
+    } catch (e) {
+      console.log('Could not fetch latest votes, using local votes')
+    }
+
+    const correctGuessers = Object.entries(latestVotes)
       .filter(([_, guess]) => guess === lie)
       .map(([voter]) => voter)
 
-    const incorrect = Object.entries(votes)
+    const incorrect = Object.entries(latestVotes)
       .filter(([_, guess]) => guess !== lie)
       .map(([voter]) => voter)
 
@@ -284,6 +297,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     setGuessedCorrectly(correctGuessers)
     setWrongGuessers(incorrect)
     setScores(newScores)
+    setVotes(latestVotes)
     setPhase('reveal')
 
     // Play sound effect if anyone got it correct
@@ -295,6 +309,7 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
     await syncGameState(gameId, {
       phase: 'reveal',
       scores: newScores,
+      votes: latestVotes,
       guessedCorrectly: correctGuessers,
       wrongGuessers: incorrect
     })
@@ -494,6 +509,53 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
   if (phase === 'guessing') {
     const isCurrentPlayer = playerName === currentPlayer?.name
 
+    if (isHost) {
+      return (
+        <GameLayout title="🤥 2 Truths & A Lie - Guessing" onExit={onExit}>
+          <div style={{ maxWidth: '600px' }}>
+            <p style={{ color: '#00f5d4', textAlign: 'center', fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+              Round {roundCount} of {maxRounds}
+            </p>
+            <p style={{ color: '#e8edf5', textAlign: 'center', marginBottom: '2rem' }}>
+              {currentPlayer?.name} is being guessed. Reveal unlocks when the timer reaches 0.
+            </p>
+
+            <div className="statements-display">
+              {statements.map((stmt, idx) => (
+                <div key={idx} className="statement-card">
+                  {stmt}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '2rem', padding: '1rem', background: '#0f1419', borderRadius: '8px', border: '1px solid #1e2d47', textAlign: 'center' }}>
+              <p style={{ color: '#7a8ba8', marginBottom: '0.5rem' }}>
+                Timer: {timer}s
+              </p>
+              <p style={{ color: '#7a8ba8', marginBottom: '0.5rem' }}>
+                Votes: {Object.keys(votes).length} / {Math.max(players.length - 1, 0)}
+              </p>
+              {Object.keys(votes).length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {Object.entries(votes).map(([name]) => (
+                    <p key={name} style={{ color: '#00f5d4', fontSize: '0.9rem' }}>✓ {name} voted</p>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={revealAnswer}
+                className="btn-primary"
+                disabled={timer > 0}
+                style={{ marginTop: '1rem', width: '100%' }}
+              >
+                Reveal Answer
+              </button>
+            </div>
+          </div>
+        </GameLayout>
+      )
+    }
+
     if (isCurrentPlayer) {
       return (
         <GameLayout title="🤥 2 Truths & A Lie - Guessing" onExit={onExit}>
@@ -556,11 +618,14 @@ export default function TwoTruthsAndALie({ gameId, isHost, playerName, playerAva
                   ))}
                 </div>
               )}
-              {(timer === 0 || Object.keys(votes).length === players.length - 1) && (
-                <button onClick={revealAnswer} className="btn-primary" style={{ marginTop: '1rem', width: '100%' }}>
-                  Reveal Answer
-                </button>
-              )}
+              <button
+                onClick={revealAnswer}
+                className="btn-primary"
+                disabled={timer > 0}
+                style={{ marginTop: '1rem', width: '100%' }}
+              >
+                Reveal Answer
+              </button>
             </div>
           )}
         </div>

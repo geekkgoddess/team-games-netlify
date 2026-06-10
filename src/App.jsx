@@ -66,16 +66,17 @@ export default function App() {
         setLoadingCode(false)
         setScreen('rules')
       } else {
-        // Game exists but no gameName yet — still let them in with generic rules
-        setCurrentGame('guess-coworker') // fallback
         setLoadingCode(false)
-        setScreen('rules')
+        setGameCode(null)
+        setGameId(null)
+        setCodeError('Game not found. Check the 6-character code with your host.')
       }
     } catch (e) {
-      console.log('Could not fetch game info, using fallback')
-      setCurrentGame('guess-coworker') // fallback so screen never stays blank
+      console.log('Could not fetch game info')
       setLoadingCode(false)
-      setScreen('rules')
+      setGameCode(null)
+      setGameId(null)
+      setCodeError('Could not verify that code. Check your connection and try again.')
     }
   }
 

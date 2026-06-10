@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatCode } from '../utils/gameUtils';
 import '../styles/GameCodeEntry.css';
 
-export default function GameCodeEntry({ onCodeSubmit, onBack }) {
+export default function GameCodeEntry({ onCodeSubmit, onBack, loading = false, error: serverError = '' }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [hideServerError, setHideServerError] = useState(false);
+
+  useEffect(() => {
+    setHideServerError(false);
+  }, [serverError]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -34,16 +39,18 @@ export default function GameCodeEntry({ onCodeSubmit, onBack }) {
             onChange={(e) => {
               setCode(e.target.value.toUpperCase());
               setError('');
+              setHideServerError(true);
             }}
+            disabled={loading}
             maxLength="6"
             autoFocus
             className="code-input"
           />
           
-          {error && <p className="error">{error}</p>}
+          {(error || (!hideServerError && serverError)) && <p className="error">{error || serverError}</p>}
 
-          <button type="submit" className="submit-btn">
-            Join Game →
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? 'Checking Code...' : 'Join Game →'}
           </button>
         </form>
 

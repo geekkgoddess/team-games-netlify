@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/teams-against-humanity.json'
@@ -42,6 +42,8 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
   const [maxRounds] = useState(5)
   const [availablePrompts, setAvailablePrompts] = useState(DEFAULT_PROMPTS)
   const [questionPreset, setQuestionPreset] = useState('default')
+  const [roundWinner, setRoundWinner] = useState(null)
+  const awardingRef = useRef(false)
 
   // Register player when they join (non-host only)
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         }
         if (data.answered !== undefined) setAnswered(data.answered)
         if (data.round !== undefined) setRound(data.round)
+        if (data.roundWinner !== undefined) setRoundWinner(data.roundWinner)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) {
         console.error('Polling error:', e)
@@ -110,6 +113,7 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
         if (data.answered !== undefined) setAnswered(data.answered)
         if (data.scores) setScores(data.scores)
         if (data.round !== undefined) setRound(data.round)
+        if (data.roundWinner !== undefined) setRoundWinner(data.roundWinner)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) {
         console.error('Polling error:', e)
@@ -150,6 +154,8 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
     setSubmissions({})
     setSubmissionsList([])
     setAnswered([])
+    setRoundWinner(null)
+    awardingRef.current = false
     setRound(newRound)
     setPhase('playing')
     setAnswerInput('')
@@ -158,7 +164,10 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
       phase: 'playing',
       currentPrompt: prompt,
       submissions: {},
+      resetSubmissions: true,
       answered: [],
+      resetAnswered: true,
+      roundWinner: null,
       round: newRound,
       scores
     })
@@ -189,17 +198,27 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
   }
 
   const awardPoints = async (submitterName, points = 10) => {
+    if (roundWinner || awardingRef.current) return
+    awardingRef.current = true
+
     const newScores = { ...scores }
     newScores[submitterName] = (newScores[submitterName] || 0) + points
+    const winner = {
+      name: submitterName,
+      answer: submissions[submitterName],
+      points
+    }
 
     setScores(newScores)
+    setRoundWinner(winner)
 
     // Play sound effect when someone wins a round
     playCorrectChime()
     setTimeout(() => playApplause(), 600)
 
     await syncGameState(gameId, {
-      scores: newScores
+      scores: newScores,
+      roundWinner: winner
     })
   }
 
@@ -218,6 +237,8 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
     setSubmissions({})
     setSubmissionsList([])
     setAnswered([])
+    setRoundWinner(null)
+    awardingRef.current = false
     setRound(newRound)
     setPhase('playing')
     setAnswerInput('')
@@ -226,7 +247,10 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
       phase: 'playing',
       currentPrompt: prompt,
       submissions: {},
+      resetSubmissions: true,
       answered: [],
+      resetAnswered: true,
+      roundWinner: null,
       round: newRound,
       scores
     })
@@ -401,12 +425,30 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
                     <p style={{ fontSize: '1rem', color: '#e8edf5', marginBottom: '0.5rem', minHeight: '50px', display: 'flex', alignItems: 'center' }}>
                       "{item.answer}"
                     </p>
-                    <button style={{ width: '100%', marginTop: '0.5rem' }} className="btn-primary">
-                      👑 Award Points
+                    {roundWinner?.name === item.id && (
+                      <p style={{ color: '#f59e0b', fontWeight: 700, marginBottom: '0.5rem' }}>
+                        Winner: {item.id}
+                      </p>
+                    )}
+                    <button
+                      style={{ width: '100%', marginTop: '0.5rem' }}
+                      className="btn-primary"
+                      disabled={!!roundWinner}
+                    >
+                      {roundWinner ? 'Points Awarded' : '👑 Award Points'}
                     </button>
                   </div>
                 ))}
               </div>
+
+              {roundWinner && (
+                <div style={{ background: '#0f1419', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #f59e0b', textAlign: 'center' }}>
+                  <h4 style={{ color: '#f59e0b', marginBottom: '0.75rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+                    Round Winner: {roundWinner.name}
+                  </h4>
+                  <p style={{ color: '#e8edf5' }}>"{roundWinner.answer}"</p>
+                </div>
+              )}
 
               <div style={{ background: '#0f1419', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #1e2d47' }}>
                 <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>Scores</h4>
@@ -434,6 +476,14 @@ export default function TeamsAgainstHumanity({ gameId, isHost, playerName, playe
               </p>
 
               <div style={{ background: '#0f1419', padding: '1.5rem', borderRadius: '8px', border: '1px solid #1e2d47' }}>
+                {roundWinner && (
+                  <div style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #1e2d47' }}>
+                    <h4 style={{ color: '#f59e0b', marginBottom: '0.75rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>
+                      Round Winner: {roundWinner.name}
+                    </h4>
+                    <p style={{ color: '#e8edf5' }}>"{roundWinner.answer}"</p>
+                  </div>
+                )}
                 <h4 style={{ color: '#00f5d4', marginBottom: '1rem', fontFamily: 'Unbounded, sans-serif', fontWeight: 700 }}>Scores</h4>
                 {Object.entries(scores)
                   .sort(([,a], [,b]) => b - a)

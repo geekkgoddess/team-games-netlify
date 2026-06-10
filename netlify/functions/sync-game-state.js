@@ -69,18 +69,31 @@ exports.handler = async (event) => {
           lastUpdate: Date.now()
         }
 
-        // Deep-merge votes, submissions, and answers objects
+        // A slow lobby request should never rewind an active game back to
+        // the player-join screen.
+        if (state.phase === 'waiting' && existing.phase && existing.phase !== 'waiting' && !state.allowWaitingReset) {
+          merged.phase = existing.phase
+        }
+
+        // Deep-merge round data during play, but allow hosts to explicitly
+        // reset it when starting a fresh round.
         if (state.votes !== undefined) {
-          merged.votes = { ...existing.votes, ...state.votes }
+          merged.votes = state.resetVotes ? state.votes : { ...existing.votes, ...state.votes }
         }
         if (state.submissions !== undefined) {
-          merged.submissions = { ...existing.submissions, ...state.submissions }
+          merged.submissions = state.resetSubmissions ? state.submissions : { ...existing.submissions, ...state.submissions }
         }
         if (state.answered !== undefined && Array.isArray(state.answered)) {
-          // For answered array, merge with existing
-          const existing_answered = existing.answered || []
-          merged.answered = [...new Set([...existing_answered, ...state.answered])]
+          if (state.resetAnswered) {
+            merged.answered = state.answered
+          } else {
+            const existing_answered = existing.answered || []
+            merged.answered = [...new Set([...existing_answered, ...state.answered])]
+          }
         }
+        delete merged.resetVotes
+        delete merged.resetSubmissions
+        delete merged.resetAnswered
 
         gameStore[gameId] = merged
       }

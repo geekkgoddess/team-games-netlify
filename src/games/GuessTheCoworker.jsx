@@ -44,6 +44,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [answer, setAnswer] = useState(null)
   const [guessedCorrectly, setGuessedCorrectly] = useState([])
   const [timer, setTimer] = useState(20)
+  const [roundStartedAt, setRoundStartedAt] = useState(0) // timestamp when voting began
+  const ROUND_DURATION = 20 // seconds per round
   const [usedClues, setUsedClues] = useState([])
   const [roundCount, setRoundCount] = useState(0)
   const [maxRounds] = useState(5)
@@ -94,6 +96,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
+        if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
         // Only update phase if we haven't made a local change in the last 600ms
         if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 600) {
           setPhase(data.phase)
@@ -114,7 +117,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.players) setPlayers(data.players)
         if (data.phase) setPhase(data.phase)
         if (data.clues) setClues(data.clues)
-        if (data.timer !== undefined) setTimer(data.timer)
+        if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.answer) setAnswer(data.answer)
         if (data.scores) setScores(data.scores)
@@ -152,31 +155,19 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     }
   }, [phase, answer])
 
-  // Voting timer
+  // Voting timer — timestamp-based so all devices stay in sync automatically.
+  // Instead of pushing a new timer value to the server every second (which caused
+  // race conditions and drift), we push roundStartedAt once when a round begins.
+  // Every device independently calculates how many seconds remain from their own
+  // clock. No per-second server traffic, no drift, no race conditions.
   useEffect(() => {
-    if (phase !== 'voting' || !isHost || timer <= 0) return
-    const timeout = setTimeout(async () => {
-      const newTimer = timer - 1
-      setTimer(newTimer)
-
-      // IMPORTANT: Only push timer + votes — never include phase here.
-      // If we pushed phase: 'voting', it could arrive at the server AFTER
-      // revealAnswer() has already pushed phase: 'reveal', flipping everyone
-      // back to the voting screen (the continuous flip-flop bug).
-      try {
-        const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
-        const serverState = await response.json()
-        const latestVotes = serverState.votes || {}
-        await syncGameState(gameId, { timer: newTimer, votes: latestVotes })
-      } catch (e) {
-        await syncGameState(gameId, { timer: newTimer })
-      }
-    }, 1000)
-    return () => clearTimeout(timeout)
-  // Removed from deps: players, scores, clues, answer, votes
-  // 'votes' was causing the timer to reset by 1 second every time a player voted.
-  // We fetch votes fresh from the server inside the callback instead.
-  }, [timer, phase, isHost, gameId])
+    if (phase !== 'voting' || !roundStartedAt) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - roundStartedAt) / 1000)
+      setTimer(Math.max(0, ROUND_DURATION - elapsed))
+    }, 500) // refresh display twice per second for a smooth countdown
+    return () => clearInterval(interval)
+  }, [phase, roundStartedAt])
 
   // Leaderboard pause countdown
   useEffect(() => {
@@ -220,15 +211,17 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     const randomIdx = Math.floor(Math.random() * pool.length)
     const selectedClue = pool[randomIdx]
 
+    const now = Date.now()
     setUsedClues([...usedClues, clueSource.indexOf(selectedClue)])
     setAnswer(selectedTeamMember)
     setClues([selectedClue])
     setVotes({})
-    setTimer(20)
+    setTimer(ROUND_DURATION)
+    setRoundStartedAt(now)
     setRoundCount(prev => prev + 1)
     setLeaderboardPauseTimer(0)
     setPhase('voting')
-    setLastLocalStateChange(Date.now())
+    setLastLocalStateChange(now)
 
     await syncGameState(gameId, {
       phase: 'voting',
@@ -238,7 +231,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       answer: selectedTeamMember,
       votes: {},
       resetVotes: true,
-      timer: 20,
+      roundStartedAt: now, // all devices calculate their own countdown from this
       roundCount: roundCount + 1,
       leaderboardPauseTimer: 0
     })

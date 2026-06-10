@@ -24,7 +24,9 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
   const [players, setPlayers] = useState([])
   const [selectedPreset, setSelectedPreset] = useState('default')
 
-  // Save game info to server so players can look it up when they enter the code
+  // Save game info to server so players can look it up when they enter the code.
+  // Keep this separate from preset changes so a late lobby update cannot send
+  // the game back to the pre-game waiting phase.
   useEffect(() => {
     const registerGame = async () => {
       try {
@@ -36,8 +38,6 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
             state: {
               gameName,
               phase: 'waiting',
-              players: [],
-              scores: {},
               questionPreset: selectedPreset
             },
             timestamp: Date.now()
@@ -48,7 +48,28 @@ export default function HostLobby({ gameCode, gameName, onStartGame, onBack }) {
       }
     }
     registerGame()
-  }, [gameCode, gameName, selectedPreset])
+  }, [gameCode, gameName])
+
+  useEffect(() => {
+    const updatePreset = async () => {
+      try {
+        await fetch('/api/sync-game-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: gameCode,
+            state: {
+              questionPreset: selectedPreset
+            },
+            timestamp: Date.now()
+          })
+        })
+      } catch (e) {
+        console.log('Could not update preset:', e)
+      }
+    }
+    updatePreset()
+  }, [gameCode, selectedPreset])
 
   // Poll for players joining
   useEffect(() => {
