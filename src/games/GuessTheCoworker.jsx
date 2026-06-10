@@ -35,6 +35,26 @@ const AVATARS = [
   '🦄', '🧙', '🎪', '🚀', '⚡', '🎸', '🐺', '🦅', '🐉', '🧛'
 ]
 
+const PHASE_ORDER = {
+  waiting: 0,
+  voting: 1,
+  reveal: 2,
+  'leaderboard-pause': 3,
+  results: 4
+}
+
+const shouldAcceptPhase = (currentPhase, nextPhase, currentRound, nextRound = currentRound) => {
+  if (!nextPhase || nextPhase === currentPhase) return true
+  if (nextPhase === 'voting' && nextRound > currentRound) return true
+  if (currentPhase === 'results' && nextPhase !== 'results') return false
+
+  const currentRank = PHASE_ORDER[currentPhase]
+  const nextRank = PHASE_ORDER[nextPhase]
+  if (currentRank === undefined || nextRank === undefined) return true
+
+  return !(nextRank < currentRank && nextRound <= currentRound)
+}
+
 export default function GuessTheCoworker({ gameId, isHost, playerName, playerAvatar, gameCode, onExit, onGameEnd, teamRoster: initialTeamRoster }) {
   const [phase, setPhase] = useState('waiting') // waiting, playing, voting, reveal, leaderboard-pause, results
   const [players, setPlayers] = useState([])
@@ -104,7 +124,15 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         const data = await response.json()
         if (data.players) setPlayers(data.players)
         if (data.scores) setScores(data.scores)
-        if (data.votes !== undefined) setVotes(data.votes)
+        if (data.votes !== undefined) {
+          setVotes(prev => {
+            const incomingRound = data.roundCount ?? roundCount
+            const isVisibleRound = ['voting', 'reveal', 'leaderboard-pause', 'results'].includes(phase) && incomingRound <= roundCount
+            const incomingCount = Object.keys(data.votes || {}).length
+            const currentCount = Object.keys(prev || {}).length
+            return isVisibleRound && incomingCount < currentCount ? prev : data.votes
+          })
+        }
         if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
         if (data.usedTeamMemberIndices) setUsedTeamMemberIndices(data.usedTeamMemberIndices)
@@ -112,14 +140,20 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         // Only update phase from server if we haven't made a local change in the last 3000ms.
         // 3s gives a slow Netlify function enough time to confirm the push before polling
         // can override local state — 600ms was too short and caused flip-flop on bad connections.
-        if (data.phase && data.phase !== phase && Date.now() - lastLocalStateChange > 3000) {
+        const incomingRound = data.roundCount ?? roundCount
+        if (
+          data.phase &&
+          data.phase !== phase &&
+          Date.now() - lastLocalStateChange > 3000 &&
+          shouldAcceptPhase(phase, data.phase, roundCount, incomingRound)
+        ) {
           setPhase(data.phase)
         }
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
-  }, [gameId, isHost, phase, lastLocalStateChange])
+  }, [gameId, isHost, phase, roundCount, lastLocalStateChange])
 
   // Player polling
   useEffect(() => {
@@ -129,10 +163,20 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
         const data = await response.json()
         if (data.players) setPlayers(data.players)
-        if (data.phase) setPhase(data.phase)
+        const incomingRound = data.roundCount ?? roundCount
+        if (data.phase) {
+          setPhase(prev => shouldAcceptPhase(prev, data.phase, roundCount, incomingRound) ? data.phase : prev)
+        }
         if (data.clues) setClues(data.clues)
         if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
-        if (data.votes !== undefined) setVotes(data.votes)
+        if (data.votes !== undefined) {
+          setVotes(prev => {
+            const isVisibleRound = ['voting', 'reveal', 'leaderboard-pause', 'results'].includes(phase) && incomingRound <= roundCount
+            const incomingCount = Object.keys(data.votes || {}).length
+            const currentCount = Object.keys(prev || {}).length
+            return isVisibleRound && incomingCount < currentCount ? prev : data.votes
+          })
+        }
         if (data.answer) setAnswer(data.answer)
         if (data.scores) setScores(data.scores)
         if (data.guessedCorrectly) setGuessedCorrectly(data.guessedCorrectly)
@@ -144,7 +188,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
-  }, [gameId, isHost])
+  }, [gameId, isHost, phase, roundCount])
 
   // Load team roster from prop or fallback to data file
   useEffect(() => {
@@ -170,6 +214,21 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       setVoteConfirmed(false)
     }
   }, [phase, answer])
+
+  // Keep a confirmed vote warm in the relay while voting is open. Netlify can
+  // run more than one in-memory function instance; a short vote heartbeat makes
+  // the vote much less likely to appear on one poll and disappear on the next.
+  useEffect(() => {
+    if (isHost || phase !== 'voting' || !playerName || !pendingVote || !voteConfirmed) return
+
+    const interval = setInterval(() => {
+      syncGameState(gameId, {
+        votes: { [playerName]: pendingVote }
+      }).catch(() => {})
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [gameId, isHost, phase, playerName, pendingVote, voteConfirmed])
 
   // Voting timer — timestamp-based so all devices stay in sync automatically.
   // Instead of pushing a new timer value to the server every second (which caused
@@ -295,7 +354,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setVoteSending(true)
     setVoteConfirmed(false)
 
-    const newVotes = { ...votes, [playerName]: votedFor }
+    const voteUpdate = { [playerName]: votedFor }
+    const newVotes = { ...votes, ...voteUpdate }
     setVotes(newVotes)
 
     // Retry up to 3 times if network is slow
@@ -305,7 +365,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         // Only send the vote update, not the entire game state
         // This prevents players from overwriting each other's data
         await syncGameState(gameId, {
-          votes: newVotes
+          votes: voteUpdate
         })
         success = true
         break
@@ -329,15 +389,20 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       // Fetch latest state from server — votes AND scores.
       // Using server scores (not closure) ensures we always add to the real
       // accumulated total, not a potentially stale React closure value.
-      let latestVotes = votes
+      let latestVotes = { ...votes }
       let latestScores = { ...scores }
-      try {
-        const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
-        const serverState = await response.json()
-        if (serverState.votes) latestVotes = serverState.votes
-        if (serverState.scores) latestScores = serverState.scores
-      } catch (e) {
-        console.log('Could not fetch latest state, using local values')
+
+      for (let attempt = 0; attempt < 8; attempt++) {
+        try {
+          const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
+          const serverState = await response.json()
+          if (serverState.votes) latestVotes = { ...latestVotes, ...serverState.votes }
+          if (serverState.scores) latestScores = serverState.scores
+          if (Object.keys(latestVotes).length >= players.length) break
+        } catch (e) {
+          console.log('Could not fetch latest state, using local values')
+        }
+        await new Promise(r => setTimeout(r, 250))
       }
 
       const correctVoters = Object.entries(latestVotes)
@@ -360,7 +425,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         setTimeout(() => playApplause(), 600)
       }
 
-      await syncGameState(gameId, {
+      const revealState = {
         phase: 'reveal',
         players,
         scores: newScores,
@@ -370,7 +435,12 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         guessedCorrectly: correctVoters,
         timer: 0,
         leaderboardPauseTimer: 0
-      })
+      }
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await syncGameState(gameId, revealState)
+        if (attempt < 2) await new Promise(r => setTimeout(r, 250))
+      }
     } finally {
       // Server push complete, or at least no longer blocking the host.
       setRevealPending(false)
