@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { syncGameState } from '../api/gameApi'
 import GameLayout from './components/GameLayout'
 import presetData from '../presets/guess-the-coworker.json'
@@ -205,6 +205,18 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       setVoteConfirmed(false)
     }
   }, [phase, answer])
+
+  // Play reveal sound for players when the host reveals the answer.
+  // useRef tracks the last phase that triggered sound so we don't replay
+  // on every 500ms poll while phase stays 'reveal'.
+  const lastSoundPhaseRef = useRef(null)
+  useEffect(() => {
+    if (!isHost && phase === 'reveal' && lastSoundPhaseRef.current !== 'reveal') {
+      playCorrectChime()
+      setTimeout(() => playApplause(), 600)
+    }
+    lastSoundPhaseRef.current = phase
+  }, [phase, isHost])
 
   // Keep a confirmed vote warm in the relay while voting is open. Netlify can
   // run more than one in-memory function instance; a short vote heartbeat makes
@@ -645,11 +657,9 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
               <span className="score">{player.points} pts</span>
             </div>
           ))}
-          {isHost && (
-            <button onClick={() => onGameEnd && onGameEnd(finalLeaderboard)} className="btn-primary" style={{ marginTop: '24px' }}>
-              Finish & Rate Game →
-            </button>
-          )}
+          <button onClick={() => onGameEnd && onGameEnd(finalLeaderboard)} className="btn-primary" style={{ marginTop: '24px' }}>
+            Finish & Rate Game →
+          </button>
         </div>
       </GameLayout>
     )

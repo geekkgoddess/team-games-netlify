@@ -138,8 +138,28 @@ export default function App() {
     setScreen('rating')
   }
 
-  const handleRatingSubmit = (rating) => {
-    console.log('Game rated:', rating)
+  const handleRatingSubmit = async (ratingData) => {
+    // Save rating to Redis under a per-player key so multiple players
+    // can submit without overwriting each other
+    const raterName = playerName || (isHost ? 'host' : 'player')
+    try {
+      await fetch('/api/sync-game-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId,
+          state: {
+            [`rating_${raterName}`]: {
+              stars: ratingData.rating,
+              feedback: ratingData.feedback,
+              submittedAt: Date.now()
+            }
+          }
+        })
+      })
+    } catch (e) {
+      console.log('Rating save failed (non-critical):', e)
+    }
     goHome()
   }
 

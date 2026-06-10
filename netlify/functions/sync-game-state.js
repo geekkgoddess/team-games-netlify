@@ -5,6 +5,9 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
 
 // Send a single Redis command to Upstash and return its result
 async function redis(command, ...args) {
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    throw new Error('Redis env vars missing: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set')
+  }
   const res = await fetch(REDIS_URL, {
     method: 'POST',
     headers: {
@@ -14,6 +17,9 @@ async function redis(command, ...args) {
     body: JSON.stringify([command, ...args])
   })
   const json = await res.json()
+  if (json.error) {
+    throw new Error(`Redis error (${res.status}): ${json.error}`)
+  }
   return json.result
 }
 
@@ -205,7 +211,8 @@ exports.handler = async (event) => {
       }
 
     } catch (e) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid body' }) }
+      console.error('POST error:', e.message)
+      return { statusCode: 400, headers, body: JSON.stringify({ error: e.message || 'Invalid body' }) }
     }
   }
 
@@ -217,8 +224,13 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'gameId required' }) }
     }
 
-    const state = await getGame(gameId)
-    return { statusCode: 200, headers, body: JSON.stringify(state) }
+    try {
+      const state = await getGame(gameId)
+      return { statusCode: 200, headers, body: JSON.stringify(state) }
+    } catch (e) {
+      console.error('GET Redis error:', e.message)
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Redis unavailable', detail: e.message }) }
+    }
   }
 
   return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
