@@ -70,6 +70,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const [roundCount, setRoundCount] = useState(0)
   const [maxRounds] = useState(5)
   const [leaderboardPauseTimer, setLeaderboardPauseTimer] = useState(0)
+  const [leaderboardPauseStartedAt, setLeaderboardPauseStartedAt] = useState(0)
+  const LEADERBOARD_PAUSE_DURATION = 4
   const [pendingVote, setPendingVote] = useState(null)
   const [voteSending, setVoteSending] = useState(false)
   const [voteConfirmed, setVoteConfirmed] = useState(false)
@@ -133,8 +135,11 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
             return isVisibleRound && incomingCount < currentCount ? prev : data.votes
           })
         }
-        if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
-        if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
+        if (data.leaderboardPauseTimer !== undefined && data.leaderboardPauseStartedAt === undefined) {
+          setLeaderboardPauseTimer(data.leaderboardPauseTimer)
+        }
+        if (data.roundStartedAt !== undefined) setRoundStartedAt(data.roundStartedAt)
+        if (data.leaderboardPauseStartedAt !== undefined) setLeaderboardPauseStartedAt(data.leaderboardPauseStartedAt)
         if (data.usedTeamMemberIndices) setUsedTeamMemberIndices(data.usedTeamMemberIndices)
         if (data.usedClues) setUsedClues(data.usedClues)
         // Only update phase from server if we haven't made a local change in the last 3000ms.
@@ -168,7 +173,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
           setPhase(prev => shouldAcceptPhase(prev, data.phase, roundCount, incomingRound) ? data.phase : prev)
         }
         if (data.clues) setClues(data.clues)
-        if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
+        if (data.roundStartedAt !== undefined) setRoundStartedAt(data.roundStartedAt)
         if (data.votes !== undefined) {
           setVotes(prev => {
             const isVisibleRound = ['voting', 'reveal', 'leaderboard-pause', 'results'].includes(phase) && incomingRound <= roundCount
@@ -181,7 +186,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.scores) setScores(data.scores)
         if (data.guessedCorrectly) setGuessedCorrectly(data.guessedCorrectly)
         if (data.roundCount !== undefined) setRoundCount(data.roundCount)
-        if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
+        if (data.leaderboardPauseTimer !== undefined && data.leaderboardPauseStartedAt === undefined) {
+          setLeaderboardPauseTimer(data.leaderboardPauseTimer)
+        }
+        if (data.leaderboardPauseStartedAt !== undefined) setLeaderboardPauseStartedAt(data.leaderboardPauseStartedAt)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
         if (data.usedTeamMemberIndices) setUsedTeamMemberIndices(data.usedTeamMemberIndices)
         if (data.usedClues) setUsedClues(data.usedClues)
@@ -245,29 +253,39 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     return () => clearInterval(interval)
   }, [phase, roundStartedAt])
 
-  // Leaderboard pause countdown
+  // Leaderboard pause countdown. Like the voting timer, this is timestamp-based:
+  // the host writes the start time once, then every browser calculates locally.
+  // No per-second server writes, so Netlify cannot bounce the host between 2 and 4.
   useEffect(() => {
-    if (phase !== 'leaderboard-pause' || !isHost || leaderboardPauseTimer <= 0) return
-    const timeout = setTimeout(async () => {
-      const newTimer = leaderboardPauseTimer - 1
-      setLeaderboardPauseTimer(newTimer)
-      await syncGameState(gameId, { leaderboardPauseTimer: newTimer, roundCount })
-    }, 1000)
-    return () => clearTimeout(timeout)
-  }, [leaderboardPauseTimer, phase, isHost, gameId, roundCount])
+    if (phase !== 'leaderboard-pause' || !leaderboardPauseStartedAt) return
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - leaderboardPauseStartedAt) / 1000)
+      setLeaderboardPauseTimer(Math.max(0, LEADERBOARD_PAUSE_DURATION - elapsed))
+    }, 250)
+
+    return () => clearInterval(interval)
+  }, [phase, leaderboardPauseStartedAt])
 
   // Auto-advance after leaderboard pause.
   // Uses autoAdvancedRef to fire exactly once per pause — if the network is slow and
   // the host polling briefly flips phase back to 'leaderboard-pause' before the server
   // confirms 'voting', this guard prevents a second startRound() call with conflicting data.
   useEffect(() => {
-    // When leaderboard pause first starts (timer > 0), reset the guard so this
+    // When leaderboard pause first starts (timestamp exists), reset the guard so this
     // pause gets its own clean auto-advance slot.
-    if (phase === 'leaderboard-pause' && leaderboardPauseTimer > 0) {
+    if (phase === 'leaderboard-pause' && leaderboardPauseStartedAt) {
       autoAdvancedRef.current = false
     }
-    // When countdown hits 0, fire ONCE.
-    if (phase === 'leaderboard-pause' && leaderboardPauseTimer === 0 && isHost) {
+
+    if (phase !== 'leaderboard-pause' || !leaderboardPauseStartedAt || !isHost) return
+
+    const msRemaining = Math.max(
+      0,
+      leaderboardPauseStartedAt + LEADERBOARD_PAUSE_DURATION * 1000 - Date.now()
+    )
+
+    const timeout = setTimeout(() => {
       if (autoAdvancedRef.current) return  // already fired — do nothing
       autoAdvancedRef.current = true
       if (roundCount >= maxRounds) {
@@ -275,8 +293,10 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       } else {
         startRound()
       }
-    }
-  }, [leaderboardPauseTimer, phase])
+    }, msRemaining)
+
+    return () => clearTimeout(timeout)
+  }, [leaderboardPauseStartedAt, phase, isHost, roundCount])
 
   const startRound = async () => {
     // Select a random team member from the roster (not from players)
@@ -327,6 +347,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     setRoundStartedAt(now)
     setRoundCount(prev => prev + 1)
     setLeaderboardPauseTimer(0)
+    setLeaderboardPauseStartedAt(0)
     setPhase('voting')
     setLastLocalStateChange(now)
 
@@ -341,6 +362,7 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       roundStartedAt: now, // all devices calculate their own countdown from this
       roundCount: roundCount + 1,
       leaderboardPauseTimer: 0,
+      leaderboardPauseStartedAt: 0,
       usedTeamMemberIndices: nextUsedTeamMemberIndices,
       usedClues: nextUsedClues
     })
@@ -439,7 +461,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         votes: latestVotes,
         guessedCorrectly: correctVoters,
         timer: 0,
-        leaderboardPauseTimer: 0
+        leaderboardPauseTimer: 0,
+        leaderboardPauseStartedAt: 0
       }
 
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -453,9 +476,11 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   }
 
   const goToLeaderboard = async () => {
+    const now = Date.now()
     setPhase('leaderboard-pause')
-    setLastLocalStateChange(Date.now())
-    setLeaderboardPauseTimer(4)
+    setLastLocalStateChange(now)
+    setLeaderboardPauseTimer(LEADERBOARD_PAUSE_DURATION)
+    setLeaderboardPauseStartedAt(now)
 
     await syncGameState(gameId, {
       phase: 'leaderboard-pause',
@@ -466,14 +491,15 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       answer,
       votes,
       timer: 0,
-      leaderboardPauseTimer: 4
+      leaderboardPauseTimer: LEADERBOARD_PAUSE_DURATION,
+      leaderboardPauseStartedAt: now
     })
   }
 
   const endGame = async () => {
     setPhase('results')
     setLastLocalStateChange(Date.now())
-    await syncGameState(gameId, { phase: 'results', roundCount, players, scores, leaderboardPauseTimer: 0 })
+    await syncGameState(gameId, { phase: 'results', roundCount, players, scores, leaderboardPauseTimer: 0, leaderboardPauseStartedAt: 0 })
   }
 
   // --- HOST: Waiting for players ---

@@ -93,6 +93,7 @@ exports.handler = async (event) => {
           merged.guessedCorrectly = existing.guessedCorrectly
           merged.roundStartedAt = existing.roundStartedAt
           merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+          merged.leaderboardPauseStartedAt = existing.leaderboardPauseStartedAt
           merged.usedTeamMemberIndices = existing.usedTeamMemberIndices
           merged.usedClues = existing.usedClues
         }
@@ -126,6 +127,7 @@ exports.handler = async (event) => {
             merged.answer = existing.answer
             merged.roundStartedAt = existing.roundStartedAt
             merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+            merged.leaderboardPauseStartedAt = existing.leaderboardPauseStartedAt
           }
 
           if (existing.phase === 'results' && state.phase !== 'results' && !state.allowResultsReset) {
@@ -139,6 +141,7 @@ exports.handler = async (event) => {
             merged.guessedCorrectly = existing.guessedCorrectly
             merged.roundStartedAt = existing.roundStartedAt
             merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+            merged.leaderboardPauseStartedAt = existing.leaderboardPauseStartedAt
             merged.usedTeamMemberIndices = existing.usedTeamMemberIndices
             merged.usedClues = existing.usedClues
           }
