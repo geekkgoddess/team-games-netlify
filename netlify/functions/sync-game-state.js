@@ -1,6 +1,14 @@
 // In-memory game store (persists for duration of Netlify function instance)
 const gameStore = {}
 
+const PHASE_ORDER = {
+  waiting: 0,
+  voting: 1,
+  reveal: 2,
+  'leaderboard-pause': 3,
+  results: 4
+}
+
 // Auto-cleanup games older than 2 hours
 const cleanup = () => {
   const now = Date.now()
@@ -68,6 +76,7 @@ exports.handler = async (event) => {
           ...state,
           lastUpdate: Date.now()
         }
+        let ignoreRoundReset = false
 
         // A slow lobby request should never rewind an active game back to
         // the player-join screen.
@@ -75,13 +84,54 @@ exports.handler = async (event) => {
           merged.phase = existing.phase
         }
 
+        // Prevent stale requests from rewinding the game phase. This is the
+        // flicker guard: a late "voting" write from an older round should not
+        // pull players back from reveal, leaderboard, or final results.
+        if (state.phase && existing.phase && state.phase !== existing.phase) {
+          const existingRank = PHASE_ORDER[existing.phase]
+          const incomingRank = PHASE_ORDER[state.phase]
+          const existingRound = existing.roundCount || 0
+          const incomingRound = state.roundCount || existingRound
+          const startsNewRound = state.phase === 'voting' && incomingRound > existingRound
+          const explicitlyResetting = state.allowWaitingReset || state.allowResultsReset
+
+          if (
+            existingRank !== undefined &&
+            incomingRank !== undefined &&
+            incomingRank < existingRank &&
+            !startsNewRound &&
+            !explicitlyResetting
+          ) {
+            ignoreRoundReset = true
+            merged.phase = existing.phase
+            merged.roundCount = existing.roundCount
+            merged.clues = existing.clues
+            merged.answer = existing.answer
+            merged.roundStartedAt = existing.roundStartedAt
+            merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+          }
+
+          if (existing.phase === 'results' && state.phase !== 'results' && !state.allowResultsReset) {
+            ignoreRoundReset = true
+            merged.phase = existing.phase
+            merged.roundCount = existing.roundCount
+            merged.clues = existing.clues
+            merged.answer = existing.answer
+            merged.votes = existing.votes
+            merged.scores = existing.scores
+            merged.guessedCorrectly = existing.guessedCorrectly
+            merged.roundStartedAt = existing.roundStartedAt
+            merged.leaderboardPauseTimer = existing.leaderboardPauseTimer
+          }
+        }
+
         // Deep-merge round data during play, but allow hosts to explicitly
         // reset it when starting a fresh round.
         if (state.votes !== undefined) {
-          merged.votes = state.resetVotes ? state.votes : { ...existing.votes, ...state.votes }
+          merged.votes = state.resetVotes && !ignoreRoundReset ? state.votes : { ...existing.votes, ...state.votes }
         }
         if (state.submissions !== undefined) {
-          merged.submissions = state.resetSubmissions ? state.submissions : { ...existing.submissions, ...state.submissions }
+          merged.submissions = state.resetSubmissions && !ignoreRoundReset ? state.submissions : { ...existing.submissions, ...state.submissions }
         }
         if (state.answered !== undefined && Array.isArray(state.answered)) {
           if (state.resetAnswered) {

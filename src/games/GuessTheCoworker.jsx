@@ -107,6 +107,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.votes !== undefined) setVotes(data.votes)
         if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         if (data.roundStartedAt) setRoundStartedAt(data.roundStartedAt)
+        if (data.usedTeamMemberIndices) setUsedTeamMemberIndices(data.usedTeamMemberIndices)
+        if (data.usedClues) setUsedClues(data.usedClues)
         // Only update phase from server if we haven't made a local change in the last 3000ms.
         // 3s gives a slow Netlify function enough time to confirm the push before polling
         // can override local state — 600ms was too short and caused flip-flop on bad connections.
@@ -137,6 +139,8 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
         if (data.roundCount !== undefined) setRoundCount(data.roundCount)
         if (data.leaderboardPauseTimer !== undefined) setLeaderboardPauseTimer(data.leaderboardPauseTimer)
         if (data.questionPreset) setQuestionPreset(data.questionPreset)
+        if (data.usedTeamMemberIndices) setUsedTeamMemberIndices(data.usedTeamMemberIndices)
+        if (data.usedClues) setUsedClues(data.usedClues)
       } catch (e) { console.error('Polling error:', e) }
     }, 500)
     return () => clearInterval(interval)
@@ -217,7 +221,20 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
   const startRound = async () => {
     // Select a random team member from the roster (not from players)
     // This is like Guess Who - the characters are fixed regardless of who's playing
-    const selectedTeamMember = teamRoster[Math.floor(Math.random() * teamRoster.length)]
+    const roster = teamRoster.length > 0 ? teamRoster : teamRosterData?.teamMembers || []
+    if (roster.length === 0) {
+      console.error('Cannot start Guess the Coworker: no team roster is available')
+      return
+    }
+
+    const remainingMemberIndices = roster
+      .map((_, index) => index)
+      .filter(index => !usedTeamMemberIndices.includes(index))
+    const memberPool = remainingMemberIndices.length > 0
+      ? remainingMemberIndices
+      : roster.map((_, index) => index)
+    const selectedTeamMemberIndex = memberPool[Math.floor(Math.random() * memberPool.length)]
+    const selectedTeamMember = roster[selectedTeamMemberIndex]
 
     // Get clues from the selected team member
     let clueSource = DEFAULT_CLUES
@@ -228,14 +245,21 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       console.log(`📝 Using default clues for ${selectedTeamMember.name}`)
     }
 
-    const availableCluesPool = clueSource.filter((_, i) => !usedClues.includes(i))
+    const memberClueKey = selectedTeamMember?.id || selectedTeamMember?.name || String(selectedTeamMemberIndex)
+    const availableCluesPool = clueSource.filter((_, i) => !usedClues.includes(`${memberClueKey}:${i}`))
     const pool = availableCluesPool.length === 0 ? clueSource : availableCluesPool
 
     const randomIdx = Math.floor(Math.random() * pool.length)
     const selectedClue = pool[randomIdx]
+    const selectedClueIndex = clueSource.indexOf(selectedClue)
+    const nextUsedTeamMemberIndices = memberPool === remainingMemberIndices
+      ? [...usedTeamMemberIndices, selectedTeamMemberIndex]
+      : [selectedTeamMemberIndex]
+    const nextUsedClues = [...usedClues, `${memberClueKey}:${selectedClueIndex}`]
 
     const now = Date.now()
-    setUsedClues([...usedClues, clueSource.indexOf(selectedClue)])
+    setUsedTeamMemberIndices(nextUsedTeamMemberIndices)
+    setUsedClues(nextUsedClues)
     setAnswer(selectedTeamMember)
     setClues([selectedClue])
     setVotes({})
@@ -256,7 +280,9 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
       resetVotes: true,
       roundStartedAt: now, // all devices calculate their own countdown from this
       roundCount: roundCount + 1,
-      leaderboardPauseTimer: 0
+      leaderboardPauseTimer: 0,
+      usedTeamMemberIndices: nextUsedTeamMemberIndices,
+      usedClues: nextUsedClues
     })
   }
 
@@ -299,54 +325,56 @@ export default function GuessTheCoworker({ gameId, isHost, playerName, playerAva
     // reveal POST overwriting phase back to 'reveal' after we've moved on.
     setRevealPending(true)
 
-    // Fetch latest state from server — votes AND scores.
-    // Using server scores (not closure) ensures we always add to the real
-    // accumulated total, not a potentially stale React closure value.
-    let latestVotes = votes
-    let latestScores = { ...scores }
     try {
-      const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
-      const serverState = await response.json()
-      if (serverState.votes) latestVotes = serverState.votes
-      if (serverState.scores) latestScores = serverState.scores
-    } catch (e) {
-      console.log('Could not fetch latest state, using local values')
+      // Fetch latest state from server — votes AND scores.
+      // Using server scores (not closure) ensures we always add to the real
+      // accumulated total, not a potentially stale React closure value.
+      let latestVotes = votes
+      let latestScores = { ...scores }
+      try {
+        const response = await fetch(`/api/sync-game-state?gameId=${gameId}`)
+        const serverState = await response.json()
+        if (serverState.votes) latestVotes = serverState.votes
+        if (serverState.scores) latestScores = serverState.scores
+      } catch (e) {
+        console.log('Could not fetch latest state, using local values')
+      }
+
+      const correctVoters = Object.entries(latestVotes)
+        .filter(([_, voted]) => voted === answer?.name)
+        .map(([voter]) => voter)
+
+      const newScores = { ...latestScores }
+      correctVoters.forEach(voter => {
+        newScores[voter] = (newScores[voter] || 0) + 10
+      })
+
+      setGuessedCorrectly(correctVoters)
+      setScores(newScores)
+      setPhase('reveal')
+      setLastLocalStateChange(Date.now())
+
+      // Play sound effect if anyone got it correct
+      if (correctVoters.length > 0) {
+        playCorrectChime()
+        setTimeout(() => playApplause(), 600)
+      }
+
+      await syncGameState(gameId, {
+        phase: 'reveal',
+        players,
+        scores: newScores,
+        clues,
+        answer,
+        votes: latestVotes,
+        guessedCorrectly: correctVoters,
+        timer: 0,
+        leaderboardPauseTimer: 0
+      })
+    } finally {
+      // Server push complete, or at least no longer blocking the host.
+      setRevealPending(false)
     }
-
-    const correctVoters = Object.entries(latestVotes)
-      .filter(([_, voted]) => voted === answer?.name)
-      .map(([voter]) => voter)
-
-    const newScores = { ...latestScores }
-    correctVoters.forEach(voter => {
-      newScores[voter] = (newScores[voter] || 0) + 10
-    })
-
-    setGuessedCorrectly(correctVoters)
-    setScores(newScores)
-    setPhase('reveal')
-    setLastLocalStateChange(Date.now())
-
-    // Play sound effect if anyone got it correct
-    if (correctVoters.length > 0) {
-      playCorrectChime()
-      setTimeout(() => playApplause(), 600)
-    }
-
-    await syncGameState(gameId, {
-      phase: 'reveal',
-      players,
-      scores: newScores,
-      clues,
-      answer,
-      votes: latestVotes,
-      guessedCorrectly: correctVoters,
-      timer: 0,
-      leaderboardPauseTimer: 0
-    })
-
-    // Server push complete — host can now safely advance to next round
-    setRevealPending(false)
   }
 
   const goToLeaderboard = async () => {
